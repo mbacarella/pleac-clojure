@@ -98,3 +98,39 @@
 (def a (if (find (ns-interns *ns*) 'b) b c))
 ; -----------------------------
 (def foo (or bar "DEFAULT VALUE"))
+
+(def dir
+  (if (> (count *command-line-args*) 1)
+    (subvec *command-line-args 1)
+    "/tmp"))
+
+;; Exchanging Values Without Using Temporary Variables
+; -----------------------------
+(let [var1 var2
+      var2 var1])
+; -----------------------------
+(def temp a)
+(def a b)
+(def b temp)
+; -----------------------------
+(let [a "alpha"
+      b "omega"]
+  (let [a b
+        b a]
+  ; the first shall be last -- and versa vice
+    ))
+
+; -----------------------------
+(let [alpha "January"
+      beta "March"
+      production "August"]
+; move beta to alpha
+; move production to beta
+; move alpha to production
+  (let [alpha beta
+        beta production
+        production alpha]
+
+    ))
+
+;; Converting Between ASCII Characters and Values
