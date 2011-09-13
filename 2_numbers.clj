@@ -20,14 +20,14 @@
 (try
   (Integer/parseInt s1)
   (catch NumberFormatException _ex
-    (.println System/out (str s1 " is not an integer"))))
+    (println (str s1 " is not an integer"))))
 
 ; (def s2 3.14)
 ; (def s2 "foo")
 (try
   (Float/parseFloat s2)
   (catch NumberFormatException _ex
-    (.println System/out (str s2 " is not a float"))))
+    (println (str s2 " is not a float"))))
 
 (defn isNumeric [s]
   (let [nf (NumberFormat/getInstance locale)]
@@ -50,3 +50,12 @@
         (bigNum num1)
         (bigNum num2)) 0)))
 
+; with a scaling factor
+(def wage (BigDecimal. "5.36"))
+(def hours (BigDecimal. "40"))
+(def week (.multiply wage hours))
+
+(println (str "One week's wage is: $" week))
+; One week's wage is: $214.40
+
+;; Rounding Floating-Point Numbers
