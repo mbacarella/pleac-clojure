@@ -15,7 +15,7 @@
 ; user=> (nb "not a number")
 ; java.text.ParseException: Unparseable number: "not a number"
 
-; (def s1 100)
+; (def s1 "100")
 ; (def s1 "not a number")
 (try
   (Integer/parseInt s1)
