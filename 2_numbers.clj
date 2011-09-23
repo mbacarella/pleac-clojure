@@ -65,7 +65,7 @@
 ; (def unrounded ...)
 ; (def scale ...)
 ; (def roundingMode ...)
-(def rounded (.setScale unrounded scale roundingMode)
+(def rounded (.setScale unrounded scale roundingMode))
 ;;----------------------------------------------------------------------------------
 (def a (BigDecimal. "0.255"))
 (def b (.setScale a 2 BigDecimal/ROUND_HALF_UP))
@@ -109,14 +109,14 @@
 (apply println (cons "Infancy is:" (range 0 3)))
 (apply println (cons "Toddling is:" (range 3 5)))
 (apply println (cons "Childhood is:" (range 5 13)))
-;; Infancy is: 0 1 2
-;; Toddling is: 3 4
-;; Childhood is: 5 6 7 8 9 10 11 12
+; Infancy is: 0 1 2
+; Toddling is: 3 4
+; Childhood is: 5 6 7 8 9 10 11 12
 ;;----------------------------------------------------------------------------------
 
 ;; Working with Roman Numerals
 ;;----------------------------------------------------------------------------------
-;; no roman module available
+; no roman module available
 ;;----------------------------------------------------------------------------------
 
 ;; Generating Random Numbers
@@ -127,3 +127,68 @@
 (def i (+ (.nextInt random 51) 25))
 (println i)
 ;;----------------------------------------------------------------------------------
+
+;; Generating Different Random Numbers
+;;----------------------------------------------------------------------------------
+; Seed the generator with an integer
+(import '(java.util Random))
+(Random. 5)
+
+;; Use SecureRandom instead to seed with bytes from stdin
+(import '(java.security SecureRandom))
+(use 'clojure.contrib.io)
+(SecureRandom. (to-byte-array System/in))
+
+;; Making Numbers Even More Random
+(let [srng (SecureRandom.)
+      buf (byte-array 10)]
+  (do
+    (.nextBytes srng buf)
+    buf))
+
+;; Generating Biased Random Numbers
+(defn gaussian-rand []
+  (let [get-w (fn []
+                 (let [u1 (- (* 2 (.nextDouble prng)) 1)
+                       u2 (- (* 2 (.nextDouble prng)) 1)
+                       w (+ (* u1 u1) (* u2 u2))
+                       (if (>= w 0) [w u1 u2] (get-w)))))
+        [w u1 u2] (get-w)
+        w (Math/sqrt (* -2 (/ (Math/log w) w)))
+        g2 (* u1 w)
+        g1 (* u2 w)]
+    g1))
+
+;; (* note that because of the way dist is used, it makes the most sense to return
+;; * it as a sorted associative list rather than another hash table *)
+;; let weightToDist whash =
+;;   let total = Hashtbl.fold (fun k v b -> b +. v) whash 0. in
+;;   let dist = Hashtbl.fold (fun k v b -> (v,k)::b) whash [] in
+;;   List.sort compare dist;;
+
+;; let rec weightedRand dhash =
+;;   let r = ref (Random.float 1.) in
+;;   try
+;;     let v,k = List.find (fun (v,k) -> r := !r -. v; !r < 0.) dhash in k
+;;   with Not_found -> weightedRand dhash;;
+
+;; let mean,dev = 25.,2. in
+;; let salary = gaussianRand () *. sdev +. mean;;
+;; printf "You have been hired at $%.2f\n" salary;;
+
+;; Doing Trigonometry in Degrees, not Radians
+
+;; let pi = acos(-. 1.);;
+;; let degrees_of_radians r = 180. *. r /. pi;;
+;; let radians_of_degrees d = d *. pi /. 180.;;
+
+;; let sinDeg d = sin (radians_of_degrees d);;
+;; let cosDeg d = cos (radians_of_degrees d);;
+
+;; Calculating More Trigonometric Functions
+
+;; (* cos, sin, tan, acos, asin, atan, sinh, cosh and tanh are all standard
+;; functions, but missing functions, such as secant can be construced in the usual
+;; way... *)
+
+;; let sec x = 1. /. (sin x);;
