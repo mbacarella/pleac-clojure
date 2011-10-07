@@ -147,24 +147,23 @@
     buf))
 
 ;; Generating Biased Random Numbers
+(def prng (Random.))
+
 (defn gaussian-rand []
-  (let [get-w (fn []
-                 (let [u1 (- (* 2 (.nextDouble prng)) 1)
-                       u2 (- (* 2 (.nextDouble prng)) 1)
-                       w (+ (* u1 u1) (* u2 u2))
-                       (if (>= w 0) [w u1 u2] (get-w)))))
-        [w u1 u2] (get-w)
+  (let [get (fn loop []
+              (let [u1 (- (* 2 (.nextDouble prng)) 1)
+                    u2 (- (* 2 (.nextDouble prng)) 1)
+                    w (+ (* u1 u1) (* u2 u2))]
+                (if (>= w 1) (loop) [w u1 u2])))
+        [w u1 u2] (get)
         w (Math/sqrt (* -2 (/ (Math/log w) w)))
         g2 (* u1 w)
         g1 (* u2 w)]
     g1))
 
-;; (* note that because of the way dist is used, it makes the most sense to return
-;; * it as a sorted associative list rather than another hash table *)
-;; let weightToDist whash =
-;;   let total = Hashtbl.fold (fun k v b -> b +. v) whash 0. in
-;;   let dist = Hashtbl.fold (fun k v b -> (v,k)::b) whash [] in
-;;   List.sort compare dist;;
+(defn weight-to-dist [weights]
+  (let [total (reduce (fn [a b] (+ a b)) 0 (vals weights))]
+    (map (fn [key weight] [key (/ weight total)] weights))))
 
 ;; let rec weightedRand dhash =
 ;;   let r = ref (Random.float 1.) in
