@@ -161,28 +161,42 @@
         g1 (* u2 w)]
     g1))
 
+; -----------------------------
+; weight-to-dist: takes a list of pairs mapping key to weight and
+; returns a list of pairs mapping key to probability
 (defn weight-to-dist [weights]
-  (let [total (reduce (fn [a b] (+ a b)) 0 (vals weights))]
-    (map (fn [key weight] [key (/ weight total)] weights))))
+  (let [total (apply + (map (fn [[_key weight]] weight) weights))]
+    (map (fn [[key weight]] [key (/ weight total)]) weights)))
 
-;; let rec weightedRand dhash =
-;;   let r = ref (Random.float 1.) in
-;;   try
-;;     let v,k = List.find (fun (v,k) -> r := !r -. v; !r < 0.) dhash in k
-;;   with Not_found -> weightedRand dhash;;
+; weighted-rand: takes a list of pairs mapping key to probability 
+; and returns the corresponding key
+(defn weighted-rand [dist]
+  ; accumulate without mutation
+  (let [go (fn cont [p lst]
+             (let [hd (first lst)]
+               (if (= hd nil)
+                 nil
+                 (let [[key weight] hd
+                       pp (- p weight)]
+                   (if (< pp 0)
+                     [pp key]
+                     (cont pp (rest lst)))))))
+        result (go (.nextDouble (Random.)) dist)]
+    ; to avoid floating point inaccuracies
+    (if (= result nil)
+      (weighted-rand dist)
+      (let [[_p key] result] key))))
 
-;; let mean,dev = 25.,2. in
-;; let salary = gaussianRand () *. sdev +. mean;;
-;; printf "You have been hired at $%.2f\n" salary;;
+(let [mean 25
+      stddev 2
+      salary (+ (* (gaussian-rand) stddev) mean)]
+  printf "You have been hired at $%.2f\n" salary)
 
 ;; Doing Trigonometry in Degrees, not Radians
+(defn radians [deg] (Math/toRadians deg))
+(defn degrees [rad] (Math/toDegrees rad))
 
-;; let pi = acos(-. 1.);;
-;; let degrees_of_radians r = 180. *. r /. pi;;
-;; let radians_of_degrees d = d *. pi /. 180.;;
-
-;; let sinDeg d = sin (radians_of_degrees d);;
-;; let cosDeg d = cos (radians_of_degrees d);;
+(defn sin-deg [deg] (Math/sin (radians deg)))
 
 ;; Calculating More Trigonometric Functions
 
