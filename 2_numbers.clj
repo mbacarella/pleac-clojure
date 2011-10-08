@@ -187,10 +187,10 @@
       (weighted-rand dist)
       (let [[_p key] result] key))))
 
-(let [mean 25
-      stddev 2
-      salary (+ (* (gaussian-rand) stddev) mean)]
-  printf "You have been hired at $%.2f\n" salary)
+(def mean 25)
+(def stddev 2)
+(def salary (+ (* (gaussian-rand) stddev) mean))
+(printf "You have been hired at $%.2f\n" salary)
 
 ;; Doing Trigonometry in Degrees, not Radians
 (defn radians [deg] (Math/toRadians deg))
@@ -199,9 +199,27 @@
 (defn sin-deg [deg] (Math/sin (radians deg)))
 
 ;; Calculating More Trigonometric Functions
+(defn tan [theta] (/ (Math/sin theta) (Math/cos theta)))
+; or use Math/tan
 
-;; (* cos, sin, tan, acos, asin, atan, sinh, cosh and tanh are all standard
-;; functions, but missing functions, such as secant can be construced in the usual
-;; way... *)
+(def y
+  (try
+    (tan (/ Math/PI 2))
+    (catch Exception e nil)))
 
-;; let sec x = 1. /. (sin x);;
+;; Taking Logarithms
+(defn log_e [x] (Math/log x))
+
+(defn log_10 [x] (Math/log10 x))
+
+(defn log-base [base value] (/ (log_e value) (log_e base)))
+
+(def answer (log-base 10 10000))
+(printf "log10(10,000) = %f" answer)
+
+                                        ; !!! no Math.complex solution !!!?
+
+;; Multiplying Matrices
+(defn multiply-matrix [matrix1 matrix2]
+
+)
