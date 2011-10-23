@@ -217,9 +217,24 @@
 (def answer (log-base 10 10000))
 (printf "log10(10,000) = %f" answer)
 
-                                        ; !!! no Math.complex solution !!!?
+; !!! no Math.complex solution !!!?
 
 ;; Multiplying Matrices
-(defn multiply-matrix [matrix1 matrix2]
-
-)
+(defn multiply-matrix [m1 m2]
+  (let [dim (fn [m] [(count m) (count (first m))])
+        [r1 c1] (dim m1)
+        [r2 c2] (dim m2)]
+    (if (not (= c1 r2))
+      nil ; matrix dimensions don't match
+      (let [dot-product (fn [v1 v2]
+                          (reduce (fn [a i]
+                                    (+ a (* (nth v1 i) (nth v2 i))))
+                                  0 (range 0 (count v1))))
+            row (fn [m i] (nth m i))
+            col (fn [m i]
+                  (map (fn [r] (nth (nth m r) i))
+                       (range (count m))))]
+        (map (fn [r]
+               (map (fn [c] (dot-product (row m1 r) (col m2 c)))
+                    (range 0 c2)))
+             (range 0 r1))))))
