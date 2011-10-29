@@ -238,3 +238,14 @@
                (map (fn [c] (dot-product (row m1 r) (col m2 c)))
                     (range 0 c2)))
              (range 0 r1))))))
+
+
+;; Adding Commas
+(defn commify [numstr]
+ (->> numstr
+      reverse
+      (partition 3 3 (repeat nil))
+      (interpose \,)
+      flatten
+      reverse
+      (apply str)))
