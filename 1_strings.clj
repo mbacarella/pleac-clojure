@@ -1,5 +1,5 @@
-;; 1. Strings
-;; Introduction
+;; @@PLEAC@@_1.0 Strings
+;; @@PLEAC@@_1.1 Introduction
 
 ; ---------------------------
 (def string "\\n")                 ; two characters, \ and an n
@@ -13,7 +13,7 @@
     terminated by one double quote.
     ")
 
-;; Accessing Substrings
+;; @@PLEAC@@_1.2 Accessing Substrings
 (def value (.substring string offset (+ offset count)))
 (def value (.substring string offset (.length string)))
  
@@ -86,7 +86,7 @@
 ; his wasn'
 ; -----------------------------
 
-;; Establishing a Default Value
+;; @@PLEAC@@_1.3 Establishing a Default Value
 
 ; -----------------------------
 ; use b if b is true, else c
@@ -104,7 +104,7 @@
     (subvec *command-line-args 1)
     "/tmp"))
 
-;; Exchanging Values Without Using Temporary Variables
+;; @@PLEAC@@_1.4 Exchanging Values Without Using Temporary Variables
 ; -----------------------------
 (let [var1 var2
       var2 var1])
@@ -133,4 +133,4 @@
 
     ))
 
-;; Converting Between ASCII Characters and Values
+;; @@PLEAC@@_1.5 Converting Between ASCII Characters and Values
