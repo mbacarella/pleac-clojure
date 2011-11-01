@@ -42,11 +42,10 @@
 ; (equal NUM1 NUM2 ACCURACY) returns true if NUM1 and NUM2 are
 ; equal to ACCURACY number of decimal places
 (defn equal [num1 num2 accuracy]
-  ;; TODO: letfn?
-  (let [bignum (fn [num]
-                 (.setScale (BigDecimal. num)
-                            accuracy
-                            BigDecimal/ROUND_DOWN))]
+  (letfn [(bignum [num]
+            (.setScale (BigDecimal. num)
+                       accuracy
+                       BigDecimal/ROUND_DOWN))]
     (= 0 (.compareTo (bignum num1) (bignum num2)))))
 
 ;;----------------------------------------------------------------------------------
@@ -170,7 +169,7 @@
     (map (fn [[key weight]] [key (/ weight total)])
          weights)))
 
-;; weighted-rand: takes a list of pairs mapping key to probability 
+;; weighted-rand: takes a list of pairs mapping key to probability
 ;; and returns the corresponding key
 (defn weighted-rand [dist]
   ;; accumulate without mutation
@@ -264,7 +263,7 @@
   (let [nf (NumberFormat/getInstance locale)]
     (.format nf num)))
 
-;; or be like the <hipster word for cool> kids
+;; deck version
 (defn commify-hipster [numstr]
   (->> Integer/toString
        numstr
@@ -303,7 +302,7 @@
 
 (defn main [argv]
   (loop [i 0]
-    (if (< i (count argv))    
+    (if (< i (count argv))
       (let [n (Integer/parseInt (.get argv i))]
         (do
           (print-factors n (factorize n))
