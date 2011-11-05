@@ -267,7 +267,7 @@
 (defn commify-hipster [numstr]
   (->> (.toString numstr)
        reverse
-       (partition 3 3 (repeat nil))
+       (partition 3 3 nil)
        (interpose \,)
        flatten
        reverse
