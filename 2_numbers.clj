@@ -281,18 +281,20 @@
 
 ;; @@PLEAC@@_2.19 Program: Calculating Prime Factors
 (defn get-factors [orig]
-  (loop [[i sqi [n factors]] [2 4 [orig {}]]]
-    (if (<= sqi n)
-      (recur [(inc i)
-              (+ sqi (* 2 i) 1)
-              (loop [[n factors] [n factors]]
-                (if (= 0 (mod n i))
-                  (recur [(/ n i)
-                          (assoc factors i (inc (factors i 0)))])
-                  [n factors]))])
-      (if (and (not (= n 1)) (not (= n orig)))
-        (assoc factors n (inc (factors n 0)))
-        factors))))
+  (loop [i 2
+         sqi 4
+         [n factors] [orig {}]]
+    (cond
+     (<= sqi n) (recur (inc i)
+                       (+ sqi (* 2 i) 1)
+                       (loop [n n factors factors]
+                         (if (zero? (mod n i))
+                           (recur (/ n i)
+                                  (assoc factors i (inc (factors i 0))))
+                           [n factors])))
+     (and (not= n 1)
+          (not= n orig)) (assoc factors n (inc (factors n 0)))
+     :default factors)))
 
 (defn print-factors [orig factors]
   (let [head (format "%-10d" orig)
