@@ -14,53 +14,51 @@
     ")
 
 ;; @@PLEAC@@_1.2 Accessing Substrings
-(def value (.substring string offset (+ offset count)))
-(def value (.substring string offset (.length string)))
- 
+(def value (subs string offset (+ offset count)))
+(def value (subs string offset (count string)))
+
 ; or
-(def value (sub_end string offset))
-; using
-(defn sub_end [string offset]
-  (.substring string offset (.length string)))
+(def value (subs string offset))
 
 
 ; -----------------------------
 ; get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
 
-; split at 'sz' byte boundaries
+;; split at 'sz' byte boundaries
+;; jli for mbac: partition is the bomb for this
 (defn split-every-n-chars [sz string]
-  (if (= string "")
+  (if (empty? string)
     ()
     (try
-      (let [beg (.substring string 0 sz)
-            rest (sub_end string sz)]
+      (let [beg (subs string 0 sz)
+            rest (subs string sz)]
         (cons beg (split-every-n-chars sz rest)))
       (catch Exception _e string))))
-            
-(def fivers (split-every-n-chars 5 string)
+
+(def fivers (split-every-n-chars 5 string))
 
 ; chop string into individual characters
-(def chars (map (fn [x] (.charAt x 0)) (split-every-n-chars 1 string)))
+(def chars (seq string))
 
 ; -----------------------------
 (def string "This is what you have")
 ; Indexes are left to right. There is no possibility to index
 ; directly from right to left
 ; "T"
-(def first (.substring string 0 1))
+(def first (subs string 0 1))
 ; "is"
-(def start (.substring string 5 7))
+(def start (subs string 5 7))
 ; "you have"
-(def rest (.substring string 13 (.length string)))
+(def rest (subs string 13 (count string)))
 ; "e" *)
-(def last (let [len (.length string)]
-            (.substring string (- len 1) len)))
+(def last (let [len (count string)]
+            (subs string (- len 1) len)))
 ; "have"
-(def theend (let [len (.length string)]
-              (.substring string (- len 4) len)))
+(def theend (let [len (count string)]
+              (subs string (- len 4) len)))
 ; "you"
-(def piece (let [len (.length string)]
-             (.substring string (- len 8) (- len 5))))
+(def piece (let [len (count string)]
+             (subs string (- len 8) (- len 5))))
 
 ; -----------------------------
 (def string "This is what you have")
@@ -68,21 +66,21 @@
 
 ; Change "is" to "wasn't"
 (def string (str
-             (.substring string 0 4)
+             (subs string 0 4)
              " wasn't "
-             (sub_end string 8)))
+             (subs string 8)))
 ; This wasn't what you have
 
 ; This wasn't wonderous
 (def string
-  (str (.substring string 0 (- (.length string) 12)) "ondrous"))
+     (str (subs string 0 (- (count string) 12)) "ondrous"))
 
 ; delete first character
-(def string (.substring string 1 (.length string)))
+(def string (subs string 1 (count string)))
 ; his wasn't wondrous
 
 ; delete last 10 characters
-(def string (.substring string 0 (- (.length string) 10)))
+(def string (subs string 0 (- (count string) 10)))
 ; his wasn'
 ; -----------------------------
 
