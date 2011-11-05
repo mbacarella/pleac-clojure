@@ -187,7 +187,8 @@
     ;; to avoid floating point inaccuracies
     (if (nil? result)
       (recur dist)
-      (let [[_p key] result] key))))
+      (let [[_p key] result]
+        key))))
 
 (def mean 25)
 (def stddev 2)
@@ -246,7 +247,7 @@
 (def number (Integer/parseInt hex 16))
 (def number (Integer/parseInt octal 8))
 
-(let [num (->>
+(let [num (->
            (do
              (print "Gimme a number in decimal, octal, or hex: ")
              (read-line))
