@@ -96,16 +96,16 @@
 
 ;; @@PLEAC@@_2.5 Operating on a Series of Integers
 ;;----------------------------------------------------------------------------------
-;; TODO: map is the wrong function to use here. where's iter?
-(map (fun [i]
-          ; i is set to every integer from X to Y inclusive
-          )
-     (range x (+ y 1)))
+(let [x 1 y 10]
+  (doseq [i (range x (inc y))]
+    ;; i is set to every integer from X to Y inclusive
+    ))
 
-(map (fun [i]
-          ; i is set to every integer from X to Y, stepsize = 7
-          )
-     (range x (+ y 1) 7))
+(let [x 1 y 10]
+  (doseq [i (range x (+ y 1) 7)]
+    ;; i is set to every integer from X to Y, stepsize = 7
+    ))
+
 ;;----------------------------------------------------------------------------------
 (apply println (cons "Infancy is:" (range 0 3)))
 (apply println (cons "Toddling is:" (range 3 5)))
@@ -122,6 +122,7 @@
 
 ;; @@PLEAC@@_2.7 Generating Random Numbers
 ;;----------------------------------------------------------------------------------
+(import '(java.util Random))
 (def random (Random. ))
 (def i (+ (.nextInt random (- y (+ x 1))) x))
 ;;----------------------------------------------------------------------------------
@@ -132,11 +133,12 @@
 ;; @@PLEAC@@_2.8 Generating Different Random Numbers
 ;;----------------------------------------------------------------------------------
 ; Seed the generator with an integer
-(import '(java.util Random))
 (Random. 5)
 
 ;; Use SecureRandom instead to seed with bytes from stdin
 (import '(java.security SecureRandom))
+;; jli for mbac: unqualified "use" is almost always ungood. use :only
+;; or :rename.
 (use 'clojure.contrib.io)
 (SecureRandom. (to-byte-array System/in))
 
@@ -175,18 +177,16 @@
 ;; and returns the corresponding key
 (defn weighted-rand [dist]
   ;; accumulate without mutation
-  ;; TODO: use tail-recursive loop/recur
   (let [go (fn cont [p lst]
-             (let [hd (first lst)]
-               (if (nil? hd)
-                 nil
-                 (let [[key weight] hd
-                       pp (- p weight)]
-                   (if (< pp 0) [pp key] (cont pp (rest lst)))))))
+             (if-let [[key weight] (first lst)]
+               (let [pp (- p weight)]
+                 (if (< pp 0)
+                   [pp key]
+                   (recur pp (rest lst))))))
         result (go (.nextDouble (Random.)) dist)]
     ;; to avoid floating point inaccuracies
-    (if (= result nil)
-      (weighted-rand dist)
+    (if (nil? result)
+      (recur dist)
       (let [[_p key] result] key))))
 
 (def mean 25)
