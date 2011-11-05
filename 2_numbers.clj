@@ -50,8 +50,9 @@
 
 ;;----------------------------------------------------------------------------------
 ;; with a scaling factor
-(def wage (BigDecimal. "5.36"))
-(def hours (BigDecimal. "40"))
+;; use "M" suffix for BigDecimal literals
+(def wage 5.36M)
+(def hours 40M)
 (def week (.multiply wage hours))
 
 (println (str "One week's wage is: $" week))
@@ -65,7 +66,7 @@
 ; (def roundingMode ...)
 (def rounded (.setScale unrounded scale roundingMode))
 ;;----------------------------------------------------------------------------------
-(def a (BigDecimal. "0.255"))
+(def a 0.255M)
 (def b (.setScale a 2 BigDecimal/ROUND_HALF_UP))
 (println (str "Unrounded: " a))
 (println (str "Rounded: " b))
