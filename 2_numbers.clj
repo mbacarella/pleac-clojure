@@ -265,8 +265,7 @@
 
 ;; deck version
 (defn commify-hipster [numstr]
-  (->> Integer/toString
-       numstr
+  (->> (.toString numstr)
        reverse
        (partition 3 3 (repeat nil))
        (interpose \,)
