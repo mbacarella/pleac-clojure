@@ -12,7 +12,7 @@
     (printf "Today is day %d of the current year.\n"
             (.get cal Calendar/DAY_OF_YEAR))))
 
-;; @@PLEAC_3.2 Finding Today's Date
+;; @@PLEAC@@_3.2 Finding Today's Date
 ;;------------------------------------
 (import '(java.util Calendar))
 (import '(java.util GregorianCalendar))
@@ -28,7 +28,7 @@
   (let [[day month year] (todays-date)]
     (printf "The current date is %d %02d %02d\n" year (inc month) day)))
 
-;; @@PLEAC_3.3 Converting DMYHMS to Epoch Seconds
+;; @@PLEAC@@_3.3 Converting DMYHMS to Epoch Seconds
 ;;------------------------------------
 (import '(java.util Calendar))
 (import '(java.util TimeZone))
@@ -49,7 +49,7 @@
 
 (epoch-seconds-of-dmyhms "UTC" 4 10 2011 12 30 55)
 
-;; @@PLEAC_3.4 Converting Epoch Seconds to DMYHMS
+;; @@PLEAC@@_3.4 Converting Epoch Seconds to DMYHMS
 ;;------------------------------------
 (import '(java.util Calendar))
 (import '(java.util Date))
