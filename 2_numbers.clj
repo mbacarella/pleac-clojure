@@ -10,20 +10,20 @@
   (let [nf (NumberFormat/getInstance locale)]
     (.parse nf s)))
 
-; user=> (nb "100")
-; 100
-; user=> (nb "not a number")
-; java.text.ParseException: Unparseable number: "not a number"
+;; user=> (nb "100")
+;; 100
+;; user=> (nb "not a number")
+;; java.text.ParseException: Unparseable number: "not a number"
 
-; (def s1 "100")
-; (def s1 "not a number")
+;; (def s1 "100")
+;; (def s1 "not a number")
 (try
   (Integer/parseInt s1)
   (catch NumberFormatException _ex
     (println (str s1 " is not an integer"))))
 
-; (def s2 3.14)
-; (def s2 "foo")
+;; (def s2 3.14)
+;; (def s2 "foo")
 (try
   (Float/parseFloat s2)
   (catch NumberFormatException _ex
@@ -39,8 +39,8 @@
 
 ;; @@PLEAC@@_2.2 Comparing Floating-Point Numbers
 ;;----------------------------------------------------------------------------------
-; (equal NUM1 NUM2 ACCURACY) returns true if NUM1 and NUM2 are
-; equal to ACCURACY number of decimal places
+;; (equal NUM1 NUM2 ACCURACY) returns true if NUM1 and NUM2 are
+;; equal to ACCURACY number of decimal places
 (defn equal [num1 num2 accuracy]
   (letfn [(bignum [num]
             (.setScale (BigDecimal. num)
@@ -56,14 +56,14 @@
 (def week (.multiply wage hours))
 
 (println (str "One week's wage is: $" week))
-; One week's wage is: $214.40
+;; One week's wage is: $214.40
 ;;----------------------------------------------------------------------------------
 
 ;; @@PLEAC@@_2.3 Rounding Floating-Point Numbers
 ;;----------------------------------------------------------------------------------
-; (def unrounded ...)
-; (def scale ...)
-; (def roundingMode ...)
+;; (def unrounded ...)
+;; (def scale ...)
+;; (def roundingMode ...)
 (def rounded (.setScale unrounded scale roundingMode))
 ;;----------------------------------------------------------------------------------
 (def a 0.255M)
@@ -73,7 +73,7 @@
 ;=> Unrounded: 0.255
 ;=> Rounded: 0.26
 ;;----------------------------------------------------------------------------------
-; caution, Math.rint() rounds to the nearest integer!
+;; caution, Math.rint() rounds to the nearest integer!
 (def a [3.3 3.5 3.7 -3.3])
 (println "number\tint\tfloor\ceil")
 (map (fn [x] (println (str (Math/rint x) "\t" (Math/floor x) "\t" (Math/ceil x)))) a)
@@ -110,14 +110,14 @@
 (apply println (cons "Infancy is:" (range 0 3)))
 (apply println (cons "Toddling is:" (range 3 5)))
 (apply println (cons "Childhood is:" (range 5 13)))
-; Infancy is: 0 1 2
-; Toddling is: 3 4
-; Childhood is: 5 6 7 8 9 10 11 12
+;; Infancy is: 0 1 2
+;; Toddling is: 3 4
+;; Childhood is: 5 6 7 8 9 10 11 12
 ;;----------------------------------------------------------------------------------
 
 ;; @@PLEAC@@_2.6 Working with Roman Numerals
 ;;----------------------------------------------------------------------------------
-; no roman module available
+;; no roman module available
 ;;----------------------------------------------------------------------------------
 
 ;; @@PLEAC@@_2.7 Generating Random Numbers
@@ -132,14 +132,15 @@
 
 ;; @@PLEAC@@_2.8 Generating Different Random Numbers
 ;;----------------------------------------------------------------------------------
-; Seed the generator with an integer
+;; Seed the generator with an integer
 (Random. 5)
 
 ;; Use SecureRandom instead to seed with bytes from stdin
 (import '(java.security SecureRandom))
 ;; jli for mbac: unqualified "use" is almost always ungood. use :only
 ;; or :rename.
-(use 'clojure.contrib.io)
+;; mbac: fixed!
+(use '[clojure.contrib.io :only (to-byte-array)])
 (SecureRandom. (to-byte-array System/in))
 
 ;; @@PLEAC@@_2.9 Making Numbers Even More Random
@@ -241,11 +242,40 @@
              (range 0 r1))))))
 
 ;; @@PLEAC@@_2.15 Using Complex Numbers
+;; c = a * b manually
+(defrecord Complex [real imag])
+(defn mul [a b]
+  (Complex. (* (.real a) (.real b))
+            (* (.imag a) (.imag b))))
+
+;; c = a * b using the complex-numbers module
+(use '(clojure.contrib complex-numbers)
+     '(clojure.contrib.generic [arithmetic :only [+ *]]
+                               [math-functions :only [sqrt]]))
+
+(def a (complex 3 5))
+(def b (complex 2 -2))
+(def c (* a b))
+
+(def c (* (complex 3 5) (complex 2 -2))) ; or on one line
+
+(defn print-complex-sqrt [x]
+  (let [as-string (fn [c] (format "%s+%si"
+                                  (real c)
+                                  (if (= (imag c) 1) "" (imag c))))]
+    (printf "sqrt(%s) = %s\n"
+           (as-string x)
+           (as-string (sqrt x)))))
+(def d (complex 3 4))
+(print-complex-sqrt d)
 
 ;; @@PLEAC@@_2.16 Converting Between Octal and Hexadecimal
 ;; hex and octal should not have leading 0x or 0 characters
-(def number (Integer/parseInt hex 16))
-(def number (Integer/parseInt octal 8))
+(defn hex-and-oct-as-decs [hex octal]
+  (let [dec-of-hex (Integer/parseInt hex 16)
+        dec-of-oct (Integer/parseInt octal 8)]
+    ;; use dec-of-hex and dec-of-oct here   
+    ))
 
 (let [num (->
            (do
@@ -277,10 +307,42 @@
        (apply str)))
 
 ;; @@PLEAC@@_2.18 Printing Correct Plurals
-(printf "It took %d hour%s\n" (if (= time 1) "" "s"))
+(defn print-plurals [hours centuries]
+  (do 
+    (printf "It took %d hour%s\n" hours (if (= hours 1) "" "s"))
+    (printf "%d hour%s %s enough.\n"
+            hours
+            (if (= hours 1) "" "s")
+            (if (= hours 1) "is" "are"))
+    (printf "It took %d centur%s\n" centuries (if (= centuries 1) "y" "ies"))))
+
+(def noun-rules
+  [[#"ss$" "sses"]
+   [#"ph$" "phes"]
+   [#"sh$" "shes"]
+   [#"ch$" "ches"]
+   [#"z$"  "zes"]
+   [#"ff$" "ffs"]
+   [#"f$"  "ves"]
+   [#"ey$" "eys"]
+   [#"y$"  "ies"]
+   [#"ix$" "ices"]
+   [#"s$"  "ses"]
+   [#"x$"  "xes"]
+   [#"$"   "s"]])
+
+(require '(clojure.contrib [str-utils2 :as s]))
+(defn noun_plural [word]
+  (some (fn [[re ending]]
+          (if (re-find re word) (s/replace word re ending)))
+        noun-rules))
+(def verb_singular noun_plural) ; make function alias
+
+;; Note: there's no perl Lingua::EN::Inflect equivalent module
 
 ;; @@PLEAC@@_2.19 Program: Calculating Prime Factors
 ;; jli for mbac: shouldn't this return {orig 1} for prime numbers?
+;; mbac for jli: maybe, but the perl version doesn't do this either
 (defn get-factors [orig]
   (letfn [(factor-out [n factors i]
             (if (zero? (mod n i))
