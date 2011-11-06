@@ -41,6 +41,8 @@
 ;;----------------------------------------------------------------------------------
 ;; (equal NUM1 NUM2 ACCURACY) returns true if NUM1 and NUM2 are
 ;; equal to ACCURACY number of decimal places
+;; jli for mbac: not sure if you can use with-precision for this:
+;; http://clojure.github.com/clojure/clojure.core-api.html#clojure.core/with-precision
 (defn equal [num1 num2 accuracy]
   (letfn [(bignum [num]
             (.setScale (BigDecimal. num)
