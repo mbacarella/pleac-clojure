@@ -94,7 +94,6 @@
 ;; -----------------------------
 
 ;; @@PLEAC@@_1.3 Establishing a Default Value
-
 ;; -----------------------------
 ;; use b if b is true, else c
 (def a (or b c))
@@ -143,3 +142,16 @@
     ))
 
 ;; @@PLEAC@@_1.5 Converting Between ASCII Characters and Values
+
+;; -----------------------------
+(def num (int \a))     ; => ASCII code 97
+(def char (char 97))   ; => \a
+;; -----------------------------
+
+(defn print-ascii-code-for-char [c]
+  (printf "Number %d is character '%c'\n" (int c) c))
+
+;; (print-ascii-code-for-char \a)
+;; Number 97 is the ASCII character a
+
+;; ...
