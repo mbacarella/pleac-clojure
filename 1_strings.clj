@@ -27,6 +27,8 @@
 ;; split at 'sz' byte boundaries
 ;; jli for mbac: partition is the bomb for this
 ;; mbac for jli: hell yeah!
+;; jli for mbac: I meant, "partition" is old and tired. all the cool
+;;               kids are using "partition-all". see commify-hipster.
 (defn split-every-n-chars [sz string]
   (if (empty? string)
     ()
