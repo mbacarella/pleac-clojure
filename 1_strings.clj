@@ -184,3 +184,92 @@
     ))
 
 ;; @@PLEAC@@_1.5 Converting Between ASCII Characters and Values
+
+;; @@PLEAC@@_1.6
+;; -----------------------------
+;; Make namespace clojure.string usable with the abbreviated name
+;; 'str'.
+(require '[clojure.string :as str])
+
+(def revbytes (str/reverse string))
+;; -----------------------------
+;; TBD: Verify whether the split call below matches the behavior of
+;; Perl split with a " " as first arg.  Should we use the regular
+;; expression #"\s+" to match Perl behavior more closely?  Does that
+;; even match exactly?  What about white space before first word or
+;; after last word in the string to be split?
+(str/join " " (reverse (str/split str #"\s+")))
+;; -----------------------------
+(def gnirts (str/reverse string))    ; str/reverse reverses letters in string
+
+(def sdrow (reverse words))          ; reverse reverses elements in sequence
+
+;; TBD: What corresponds to following Perl?
+;; $confused = reverse(@words);        # reverse letters in join("", @words)
+;; -----------------------------
+;; reverse word order
+(def string "Yoda said, \"can you see this?\"")
+
+(def allwords (str/split string #"\s+"))
+
+(def revwords (str/join " " (reverse allwords)))
+
+(print revwords "\n")
+;; -----------------------------
+;; There is no shortcut in Clojure like in Perl for the last arg of
+;; str/split equal to " " meaning the same thing as matching on the
+;; regular expression #"\s+"
+;; -----------------------------
+(def revwords (str/join " " (reverse (str/split str #"\s+"))))
+;; -----------------------------
+(def word "reviver")
+(def is-palindrome (= word (str/reverse word)))
+;; -----------------------------
+;; No Clojure program I know of equivalent to Perl's for finding
+;; palindromes of length 5 or larger conveniently fits into a single
+;; line.  Better to create a file with this program.
+
+(ns print-palindromes
+  (:import (java.io BufferedReader FileReader))
+  (:require [clojure.string :as str]))
+
+(doseq [filename *command-line-args*]
+  (doseq [line (line-seq (BufferedReader. (FileReader. filename)))]
+    (when (and (= line (str/reverse line))
+               (>= (count line) 5))
+      (print line "\n"))))
+
+;; Save the above in a file print-palindromes.clj, then run from
+;; command prompt (replace path to wherever your clojure-1.3.0.jar
+;; file is located):
+
+;; % java -cp /Users/jafinger/lein/clj-1.3.0/lib/clojure-1.3.0.jar clojure.main print-palindromes.clj /usr/share/dict/words
+
+;; Alternately, on Linux/*BSD/Mac OS X, create a shell script like
+;; this:
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; #! /bin/sh
+;; 
+;; # Replace the path below to refer to the Clojure jar file on your system.
+;; CLJ_JAR=$HOME/lein/clj-1.3.0/lib/clojure-1.3.0.jar
+;; scriptname="$1"
+;; shift
+;; java -cp $CLJ_JAR:. clojure.main "$scriptname" "$@"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; If you save that as the file 'clj' somewhere in your command path
+;; and make it executable (remove the ';; ' before each line), and add
+;; this line to the beginning of print-palindromes.clj:
+;;
+;; #! /usr/bin/env clj
+;;
+;; Then you can use the command line:
+;;
+;; % ./print-palindromes.clj /usr/share/dict/words
+;;
+;; or if print-palindromes.clj is in your command path (perhaps
+;; because . is in your command path, although I wouldn't recommend it
+;; for security reasons):
+;;
+;; % print-palindromes.clj /usr/share/dict/words
