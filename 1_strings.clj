@@ -273,3 +273,265 @@
 ;; for security reasons):
 ;;
 ;; % print-palindromes.clj /usr/share/dict/words
+
+;; @@PLEAC@@_1.7
+
+;; -----------------------------
+;; Clojure's built-in regexp matching functions have something like
+;; Perl's $& that returns everything that a regexp matched within a
+;; string, and also like Perl's $1, $2, $3, etc. that match
+;; parenthesized groups.  However, it seems to require calls to Java
+;; methods to get something like Perl's $` and $' that return the
+;; strings that are before and after the regexp match.
+
+;; The Clojure function expand-str below is most closely analagous to
+;; the following Perl code:
+
+;; sub expand_str {
+;;     my $s = shift;
+;;     while (1) {
+;;         if ($s =~ /\t+/) {
+;;             $s = $` . (' ' x (length($&) * 8 - length($`) % 8)) . $';
+;;         } else {
+;;             return $s;
+;;         }
+;;     }
+;; }
+
+(defn expand-str [s]
+  (loop [s s]
+    (let [m (re-matcher #"\t+" s)
+          tabs (re-find m)]         ; Like Perl's $&
+      (if tabs
+        (let [before-tabs (subs s 0 (. m (start)))  ; Like Perl's $`
+              after-tabs (subs s (. m (end)))]      ; $'
+          (recur (str before-tabs
+                      (apply str (repeat (- (* (count tabs) 8)
+                                            (mod (count before-tabs) 8))
+                                         " "))
+                      after-tabs)))
+        s))))
+
+;; Performance note: The code above will recompile the regexp #"\t+"
+;; each time through the loop.  If you want it to be compiled only
+;; once, wrap the function body in a (let [pat #"\t+"] ...) and use
+;; pat in place of #"\t+" in the body.
+
+;; Another way is to use the regexp "^([^\t]*)(\t+)" instead of simply
+;; "\t+".  The ([^\t]*) will explicitly match everything before the
+;; first tabs.  Warning: using (.*) instead would greedily match as
+;; much of the beginning of the string as possible, including tabs, so
+;; would not correctly cause (\t+) to match the _first_ tabs in the
+;; string.
+
+;; According to http://dev.clojure.org/jira/browse/CLJ-753 there is a
+;; bug in str/replace-first where it returns nil instead of the
+;; unmodified string s if the regexp pattern is not found to match
+;; anywhere in s.
+
+;; replace-first-fixed is a modified version of str/replace-first that
+;; behaves as the corrected version should.
+
+(defn replace-first-fixed [s pat fn]
+  (if-let [new-s (str/replace-first s pat fn)]
+    new-s
+    s))
+
+;; The last argument to str/replace-first is a fn that takes a vector
+;; of strings as an argument.  The first of these strings is
+;; everything that was matched by the regexp pattern.  The rest are
+;; the strings matched by parenthesized groups inside the regexp.  We
+;; use Clojure's destructuring on function arguments to break up the
+;; vector argument to replace-tabs and give names to its elements.
+
+(defn replace-tabs [[all-matched before-tabs tabs]]
+  (str before-tabs
+       (apply str (repeat (- (* (count tabs) 8)
+                             (mod (count before-tabs) 8))
+                          " "))))
+
+;; Repeatedly call replace-first-fixed until the string does not
+;; change, indicating that no match was found.
+
+(defn expand-str [s]
+  (loop [s s]
+    (let [next-s (replace-first-fixed s #"^([^\t]*)(\t+)" replace-tabs)]
+      (if (= s next-s)
+        s
+        (recur next-s)))))
+
+;; Performance note: Same as above about the regexp being recompiled
+;; every time through the loop.  Bind the regexp to a symbol using
+;; let, outside of the loop, to compile it only once.
+        
+           
+  
+;; My favorite version of this requires defining slightly modified
+;; versions of clojure.core/re-groups and clojure.string/replace-first
+
+;; The modified re-groups+ returns a vector like (re-groups) does,
+;; except it always returns a vector, even if there are no
+;; parenthesized subexpressions in the regexp, and it always returns
+;; the part of the string before the match (Perl's $`) as the first
+;; element, and the part of the string after the match (Perl's $') as
+;; the last element.
+
+(defn re-groups+ [^java.util.regex.Matcher m s]
+  (let [gc (. m (groupCount))
+        pre (subs s 0 (. m (start)))
+        post (subs s (. m (end)))]
+    (loop [v [pre] c 0]
+      (if (<= c gc)
+        (recur (conj v (. m (group c))) (inc c))
+        (conj v post)))))
+
+;; replace-first+ is based on Clojure's hidden internal function
+;; replace-first-by, except that it calls the user-supplied fn f for
+;; calculating the replcement string with the return value of
+;; re-groups+ instead of re-groups, so f can use those additional
+;; strings to calculate the replacement.
+
+;; The other difference is that it returns a vector of two elements:
+;; the first is the string matched, or nil if there was no match.  The
+;; second is the string after replacement on a match, or the original
+;; string if no match.
+
+(defn replace-first+
+  [^CharSequence s ^java.util.regex.Pattern re f]
+  (let [m (re-matcher re s)]
+    (let [buffer (StringBuffer. (.length s))]
+      (if (.find m)
+        (let [groups (re-groups+ m s)
+              rep (f groups)]
+          (.appendReplacement m buffer rep)
+          (.appendTail m buffer)
+          [(second groups) (str buffer)])
+        [nil s]))))
+
+;; Assuming the above are added to Clojure, or some user-defined
+;; library of commonly-used utilities, the "new code" is as follows:
+
+(defn expand-str [s]
+  (loop [[found-match s] [true s]]
+    (if found-match
+      (recur (replace-first+ s #"\t+"
+                             (fn [[pre tabs post]]
+                               (apply str (repeat (- (* (count tabs) 8)
+                                                     (mod (count pre) 8))
+                                                  " ")))))
+      s)))
+
+;; Performance note: As before, assign the regexp #"\t+" to a symbol
+;; using let, outside of the loop, to compile it only once, instead of
+;; every time through the loop.
+
+;; Test cases:
+
+;; (let [t1 (= "No tabs here" (expand-str "No tabs here"))
+;;       t2 (= "Expand          this" (expand-str "Expand\t\tthis"))
+;;       t3 (= "Expand          this    please" (expand-str "Expand\t\tthis\tplease"))]
+;;   [t1 t2 t3])
+;; -----------------------------
+;; I am not aware of any Clojure library similar to Perl's Text::Tabs
+
+;; The expand-str Clojure functions above work on individual strings.
+;; This works on a string or a collection of strings, similar to how
+;; Perl's does:
+
+(defn expand [x]
+  (cond
+   (instance? String x) (expand-str x)
+   :else (map expand-str x)))
+
+
+(defn unexpand-line [s]
+  (let [s (expand s)
+        len (count s)
+        tabstop *tabstop*
+        sections (map #(subs s % (min len (+ % tabstop)))
+                      (range 0 len tabstop))
+        ;; last section must be handled differently than earlier ones
+        lastbit (last sections)
+        sections (butlast sections)
+        lastbit (if (and (= (count lastbit) tabstop)
+                         (str/blank? lastbit))
+                  "\t"
+                  lastbit)
+        sections (map #(str/replace % #"  +$" "\t") sections)
+        sections (conj (vec sections) lastbit)]
+    (str/join "" sections)))
+
+(defn unexpand-str [s]
+  (str/join "\n" (map unexpand-line (str/split s #"\n" -1))))
+
+(defn unexpand [x]
+  (cond
+   (instance? String x) (unexpand-str x)
+   :else (map unexpand-str x)))
+;; -----------------------------
+(ns expand
+  (:import (java.io BufferedReader FileReader))
+  (:require [clojure.string :as str]))
+
+;; Use your preferred version of expand here.
+
+(doseq [filename *command-line-args*]
+  (doseq [line (line-seq (BufferedReader. (FileReader. filename)))]
+    (printf "%s\n" (expand line))))
+;; -----------------------------
+;; Below is a version of expand-str that takes an optional argument
+;; tabstop.  It is based upon the last version of expand-str given
+;; above, but the others could easily be generalized in a similar way.
+
+(defn expand-str
+  ([s tabstop]
+     (loop [[found-match s] [true s]]
+       (if found-match
+         (recur (replace-first+
+                 s #"\t+"
+                 (fn [[pre tabs post]]
+                   (apply str (repeat (- (* (count tabs) tabstop)
+                                         (mod (count pre) tabstop))
+                                      " ")))))
+         s)))
+  ([s] (expand-str s 8)))
+
+;; If one wished for a version of expand-str that could use a tabstop
+;; supplied by a "global variable", then a dynamic var named *tabstop*
+;; that was used inside of expand-str would be a good way to do it.
+
+(def ^:dynamic *tabstop* 8)
+
+(defn expand-str [s]
+  (loop [[found-match s] [true s]]
+    (if found-match
+      (recur (replace-first+
+              s #"\t+"
+              (fn [[pre tabs post]]
+                (apply str (repeat (- (* (count tabs) *tabstop*)
+                                      (mod (count pre) *tabstop*))
+                                   " ")))))
+      s)))
+
+(expand-str "Expand\t\tthis") ; expands to tabstop 8
+(def ^:dynamic *tabstop* 4)
+(expand-str "Expand\t\tthis") ; expands to tabstop 4 this time
+
+;; Performance note: Besides the repeated one about avoiding
+;; recompilation of the regexp, a new performance issue here is that
+;; accessing dynamic vars like *tabstop* is slower than accessing a
+;; local binding like those introduced via let or loop.  Wrapping the
+;; entire function body in something like (let [tabstop *tabstop*]
+;; ... ) and using tabstop in place of *tabstop* inside the body
+;; incurs this cost only once, instead of every time through the loop.
+;; -----------------------------
+(ns unexpand
+  (:import (java.io BufferedReader FileReader))
+  (:require [clojure.string :as str]))
+
+;; Use your preferred version of expand and unexpand here.
+
+(doseq [filename *command-line-args*]
+  (doseq [line (line-seq (BufferedReader. (FileReader. filename)))]
+    (printf "%s\n" (unexpand line))))
+;; -----------------------------
