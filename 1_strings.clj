@@ -214,7 +214,7 @@
 
 (def revwords (str/join " " (reverse allwords)))
 
-(print revwords "\n")
+(printf "%s\n" revwords)
 ;; -----------------------------
 ;; There is no shortcut in Clojure like in Perl for the last arg of
 ;; str/split equal to " " meaning the same thing as matching on the
@@ -230,14 +230,14 @@
 ;; line.  Better to create a file with this program.
 
 (ns print-palindromes
-  (:import (java.io BufferedReader FileReader))
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 (doseq [filename *command-line-args*]
-  (doseq [line (line-seq (BufferedReader. (FileReader. filename)))]
+  (doseq [line (line-seq (io/reader filename))]
     (when (and (= line (str/reverse line))
                (>= (count line) 5))
-      (print line "\n"))))
+      (printf "%s\n" line))))
 
 ;; Save the above in a file print-palindromes.clj, then run from
 ;; command prompt (replace path to wherever your clojure-1.3.0.jar
@@ -470,13 +470,13 @@
    :else (map unexpand-str x)))
 ;; -----------------------------
 (ns expand
-  (:import (java.io BufferedReader FileReader))
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 ;; Use your preferred version of expand here.
 
 (doseq [filename *command-line-args*]
-  (doseq [line (line-seq (BufferedReader. (FileReader. filename)))]
+  (doseq [line (line-seq (io/reader filename))]
     (printf "%s\n" (expand line))))
 ;; -----------------------------
 ;; Below is a version of expand-str that takes an optional argument
@@ -526,12 +526,12 @@
 ;; incurs this cost only once, instead of every time through the loop.
 ;; -----------------------------
 (ns unexpand
-  (:import (java.io BufferedReader FileReader))
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 ;; Use your preferred version of expand and unexpand here.
 
 (doseq [filename *command-line-args*]
-  (doseq [line (line-seq (BufferedReader. (FileReader. filename)))]
+  (doseq [line (line-seq (io/reader filename))]
     (printf "%s\n" (unexpand line))))
 ;; -----------------------------
