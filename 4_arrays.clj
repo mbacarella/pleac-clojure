@@ -221,7 +221,7 @@ nil
     (printf "%s\n" line)))
 ;;-----------------------------
 ;; Unlike in Perl, there is nothing in Clojure similar to the $_ and
-;; @_ default variables for iteratin over lines of an input file or
+;; @_ default variables for iterating over lines of an input file or
 ;; elements of a list.
 
 ;; rdr implements interface java.io.BufferedReader in this example,
