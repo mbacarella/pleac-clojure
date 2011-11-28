@@ -611,3 +611,156 @@ a e
 ;;-----------------------------
 ;; TBD: What does this Perl code do?
 ;;-----------------------------
+
+;; @@PLEAC@@_4.8
+;;-----------------------------
+(def a [1 3 5 6 7 8])
+(def b [2 3 5 7 9])
+;; All initializations of union, isect, diff will be done in each
+;; example below.
+;;-----------------------------
+;; This time I'll do it using Clojure sets first.
+(require '[clojure.set :as set])
+
+(let [set-a (set a)   ; if a is a non-set collection, create one
+      set-b (set b)
+      union (set/union set-a set-b)
+      isect (set/intersection set-a set-b)]
+  (printf "union=%s\n" (str/join " " union))
+  (printf "isect=%s\n" (str/join " " isect)))
+union=1 2 3 5 6 7 8 9
+isect=3 5 7
+
+;; Now a way more like the style of the Perl examples.
+;;
+;; Warning: The Perl code has a bug, if the input array b contains
+;; duplicates.  In this case, the duplicate elements in b will become
+;; part of isect, even if the elements are not also in a.  The code
+;; below emulates this behavior of the Perl examples.  The code using
+;; Clojure sets above does not.
+;;
+;; To see this behavior, try out the code below with these values for
+;; a and b:
+;;
+;; (def a [1 3 5 6 7 8])
+;; (def b [2 3 5 7 9 2])  ; 2 is duplicated, and will appear in isect
+(let [union (reduce #(assoc %1 %2 1) {} a)
+      [union isect] (loop [union union
+                           isect {}
+                           s (seq b)]
+                      (if-let [e (first s)]
+                        (recur (assoc union e 1)
+                               (if (union e) (assoc isect e 1) isect)
+                               (rest s))
+                        ;; return a vector of 2 values from the loop
+                        ;; expression, which will be bound to union
+                        ;; and isect in the outer let expression.
+                        [union isect]))
+      ;; Note that unlike Perl, the map called union becomes
+      ;; inaccessible after the following line.  Give the map and
+      ;; sequence different names if you want them both accessible
+      ;; later.
+      union (keys union)
+      isect (keys isect)]
+  (printf "union=%s\n" (str/join " " union))
+  (printf "isect=%s\n" (str/join " " isect)))
+union=9 2 8 7 6 5 3 1
+isect=7 5 3
+;;-----------------------------
+;; The only way I know to write Clojure code that closely emulates
+;; this Perl example is to use thread-local mutable variables,
+;; introduced using with-local-vars.  These require using var-set to
+;; change the value, and var-get to examine the value, which is a bit
+;; clunky.  However, if you really want to write something in
+;; imperative style, it may be your best bet.
+(let [[union isect]
+      (with-local-vars [union {}
+                        isect {}]
+        (doseq [e (seq (concat a b))]
+          (let [union-val (var-get union)
+                isect-val (var-get isect)]
+            ;; The next let statement behaves as Perl's $union{$e}++,
+            ;; incrementing $union{$e}, but returning the value of
+            ;; $union{$e} before the increment occurs, which is nil in
+            ;; Clojure rather than Perl's undef, but both evaluate to
+            ;; false by Clojure 'and' or Perl &&.
+            (and (let [e-in-union (union-val e)]
+                   (var-set union (assoc union-val e
+                                         ((fnil inc 0) e-in-union)))
+                   e-in-union)
+                 (var-set isect (assoc isect-val e
+                                       ((fnil inc 0) (isect-val e)))))))
+        [(var-get union) (var-get isect)])
+      union (keys union)
+      isect (keys isect)]
+  (printf "union=%s\n" (str/join " " union))
+  (printf "isect=%s\n" (str/join " " isect)))
+union=9 2 8 7 6 5 3 1
+isect=7 5 3
+
+;; The example using set/union and set/difference is really the best
+;; way to go in Clojure, though.
+;;-----------------------------
+;; First the clojure.set way:
+(let [set-a (set a)
+      set-b (set b)
+      union (set/union set-a set-b)
+      isect (set/intersection set-a set-b)
+      diff (set/difference union isect)
+      ;; Or, if you want to find the 'symmetric difference' without
+      ;; explicitly calculation the union and intersection first,
+      ;; another way is:
+      ;; diff (set/union (set/difference set-a set-b)
+      ;;                 (set/difference set-b set-a))
+      ]
+  (printf "union=%s\n" (str/join " " union))
+  (printf "isect=%s\n" (str/join " " isect))
+  (printf "diff=%s\n" (str/join " " diff)))
+union=1 2 3 5 6 7 8 9
+isect=3 5 7
+diff=1 2 6 8 9
+
+;; Next a way closer to the Perl code, but without with-local-vars.
+;; Function tally copied from an earlier example, repeated for easier
+;; reference.
+(defn tally [coll]
+  (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2)))
+          {} coll))
+
+(let [count (tally (concat a b))
+      [union isect diff]
+      (loop [union []
+             isect []
+             diff []
+             s (keys count)]
+        (if-let [e (first s)]
+          (if (== (count e) 2)
+            (recur (conj union e) (conj isect e) diff          (rest s))
+            (recur (conj union e) isect          (conj diff e) (rest s)))
+          [union isect diff]))]
+  (printf "union=%s\n" (str/join " " union))
+  (printf "isect=%s\n" (str/join " " isect))
+  (printf "diff=%s\n" (str/join " " diff)))
+union=9 2 8 7 6 5 3 1
+isect=7 5 3
+diff=9 2 8 6 1
+;;-----------------------------
+;; A similar trick as used in the Perl example can be made to work
+;; with Clojure local mutable vars, if you really want to do it.
+(let [count (tally (concat a b))
+      [union isect diff]
+      (with-local-vars [union []
+                        isect []
+                        diff []]
+        (doseq [e (keys count)]
+          (var-set union (conj (var-get union) e))
+          (let [target (if (== (count e) 2) isect diff)]
+            (var-set target (conj (var-get target) e))))
+        [(var-get union) (var-get isect) (var-get diff)])]
+  (printf "union=%s\n" (str/join " " union))
+  (printf "isect=%s\n" (str/join " " isect))
+  (printf "diff=%s\n" (str/join " " diff)))
+union=9 2 8 7 6 5 3 1
+isect=7 5 3
+diff=9 2 8 6 1
+;;-----------------------------
