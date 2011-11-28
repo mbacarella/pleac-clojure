@@ -216,7 +216,7 @@ nil
 ;;-----------------------------
 (require '[clojure.java.shell :as shell])
 
-(doseq [line (str/split (shell/sh "who") "\n")]
+(doseq [line (str/split (:out (shell/sh "who")) #"\n")]
   (if (re-find #"tchrist" line)
     (printf "%s\n" line)))
 ;;-----------------------------
@@ -438,4 +438,92 @@ Blackberry tastes good in a pie.
 (let [namelist (assoc namelist :felines rogue-cats)]
   (dotimes [i (count (namelist :felines))]
     (printf "%s purrs hypnotically..\n" ((namelist :felines) i))))
+;;-----------------------------
+
+;; @@PLEAC@@_4.6
+;;-----------------------------
+;; Iterative style -- requires a fair amount of verbiage.
+(loop [seen {}
+       uniq []
+       l (seq list)]
+  (if-let [item (first l)]
+    (if (not (seen item))   ;; (seen item) is nil if item is not a key
+                            ;; in the map seen, and nil is treated as false
+      (recur (assoc seen item 1)
+             (conj uniq item)
+             (rest l))
+      ;; else
+      (recur seen uniq (rest l)))
+    ;; return a final value from loop statement here, perhaps seen and
+    ;; uniq
+    ))
+  
+;; Functional style.  If reduce call is confusing, try first reading
+;; explanation of do-to-map above.  This is a bit simpler than that.
+(let [seen (reduce #(assoc %1 %2 1) {} list)
+      uniq (vec (keys seen))]   ; leave out vec if a list is good enough
+  ;; use seen and/or uniq here
+  )
+;;-----------------------------
+;; This is nearly the same as functional style above, except this time
+;; we want to count occurrences of items.
+(let [seen (reduce #(assoc %1 %2 (if-let [n (%1 %2)] (inc n) 1)) {} list)
+      uniq (vec (keys seen))]   ; leave out vec if a list is good enough
+  ;; ...
+  )
+
+;; Note that while the following is simpler, it crashes because it
+;; tries to do (inc nil) when it finds that (seen
+;; "first-list-element") is nil.
+(let [seen (reduce #(assoc %1 %2 (inc (%1 %2))) {} list)
+      uniq (vec (keys seen))]   ; leave out vec if a list is good enough
+  ;; ...
+  )
+
+;; fnil can make the first version a bit simpler.  As used here, (fnil
+;; inc 0), it says "do an inc, but if the argument is nil, replace it
+;; with a 0 before doing the inc".
+(let [seen (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2))) {} list)
+      uniq (vec (keys seen))]   ; leave out vec if a list is good enough
+  ;; ...
+  )
+;;-----------------------------
+;; Here we call function (some-func item) the first time a new item is
+;; encountered in the sequence 'list', but never if it is seen a 2nd
+;; or larger time later in the list.  This function is presumably
+;; called for its side effects, since there is no return value being
+;; used.
+(let [seen (reduce #(assoc %1 %2 (if-let [n (%1 %2)]
+                                   (inc n)
+                                   (do (some-func %2) 1)))
+                   {} list)]
+  ;; ...
+  )
+;;-----------------------------
+;; Here the Perl version is closer to the functional style examples
+;; given above.  No reason to repeat the Clojure code for them here.
+;;-----------------------------
+;; The Perl code here is very much like a functional style, except its
+;; condition mutates the hash 'seen'.  I'm not going to try to write a
+;; Clojure version that emulates this, since to match its behavior
+;; closely would require using a mutable Java hash table.
+
+;; %seen = ();
+;; @uniqu = grep { ! $seen{$_} ++ } @list;
+;;-----------------------------
+;; Here is a functional style version of the Perl code.  Let's make a
+;; function 'tally' to create a map of occurrence counts of items in a
+;; collection.
+(require '[clojure.string :as str])
+(require '[clojure.java.shell :as shell])
+
+(defn tally [coll]
+  (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2)))
+          {} coll))
+
+(let [lines (str/split (:out (shell/sh "who")) #"\n")
+      usernames (map #(str/replace-first % #"\s.*$" "") lines)
+      ucnt (tally usernames)
+      users (sort (keys ucnt))]
+  (printf "users logged in: %s\n" (str/join " "users)))
 ;;-----------------------------
