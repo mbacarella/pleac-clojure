@@ -411,3 +411,31 @@ nil
 ;; No foreach/for synonym in Clojure.  I believe the existing common
 ;; alternatives are all mentioned above.
 ;;-----------------------------
+
+;; @@PLEAC@@_4.5
+;;-----------------------------
+;; Clojure does not have Perl's distinction between an array and an
+;; array ref.  Clojure lists, vectors, maps, etc. can all contain
+;; instances of each other as values, and in maps any of these data
+;; structures can be used as keys, too.
+;;-----------------------------
+(def fruits [ "Apple" "Blackberry" ])
+(doseq [fruit fruits]
+  (printf "%s tastes good in a pie.\n" fruit))
+Apple tastes good in a pie.
+Blackberry tastes good in a pie.
+;;-----------------------------
+(dotimes [i (count fruits)]
+  (printf "%s tastes good in a pie.\n" (fruits i)))
+;;-----------------------------
+(def namelist { })
+(def rogue-cats [ "YellowFang" "BrokenTail" "Clawface" ])
+(let [namelist (assoc namelist :felines rogue-cats)]
+  (doseq [cat (namelist :felines)]   ; (:felines namelist) gives same result
+    (printf "%s purrs hypnotically..\n" cat)))
+(printf "--More--\nYou are controlled.\n")
+;;-----------------------------
+(let [namelist (assoc namelist :felines rogue-cats)]
+  (dotimes [i (count (namelist :felines))]
+    (printf "%s purrs hypnotically..\n" ((namelist :felines) i))))
+;;-----------------------------
