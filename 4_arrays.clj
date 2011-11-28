@@ -464,6 +464,13 @@ Blackberry tastes good in a pie.
       uniq (vec (keys seen))]   ; leave out vec if a list is good enough
   ;; use seen and/or uniq here
   )
+
+;; Clojure also has sets as a built-in data structure.  They make it
+;; easy to find unique items in a collection.
+(let [uniq (set list)]    ; use (vec (set list)) if you want a vector instead
+  ;; use uniq here
+  )
+
 ;;-----------------------------
 ;; This is nearly the same as functional style above, except this time
 ;; we want to count occurrences of items.
@@ -521,9 +528,86 @@ Blackberry tastes good in a pie.
   (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2)))
           {} coll))
 
+;; Note that we use the regex #"\s.*$" as opposed to the one #"\s.*\n"
+;; in Perl, because the strings in the sequence lines do not have \n
+;; at the end of each one.
 (let [lines (str/split (:out (shell/sh "who")) #"\n")
       usernames (map #(str/replace-first % #"\s.*$" "") lines)
       ucnt (tally usernames)
       users (sort (keys ucnt))]
-  (printf "users logged in: %s\n" (str/join " "users)))
+  (printf "users logged in: %s\n" (str/join " " users)))
+
+;; If the count of how many times each username occurred is not
+;; important, just the unique ones, then Clojure sets are more
+;; straightforward.
+(let [lines (str/split (:out (shell/sh "who")) #"\n")
+      usernames (map #(str/replace-first % #"\s.*$" "") lines)
+      users (sort (set usernames))]
+  (printf "users logged in: %s\n" (str/join " " users)))
+;;-----------------------------
+
+;; @@PLEAC@@_4.7
+;;-----------------------------
+;; First we'll do it in a similar style to the Perl version.
+;; seen is a map, and we produce a vector aonly.
+(def A ["a" "b" "c" "d" "c" "b" "a" "e"])
+(def B ["b" "c" "d" "c" "b"])
+(let [seen (reduce #(assoc %1 %2 1) {} B)
+      aonly (vec (filter #(not (seen %)) A))]  ; no vec, if vector not needed
+ (printf "%s\n" (str/join " " aonly)))
+a a e
+
+;; Then we'll use Clojure sets to simplify it.
+(require '[clojure.set :as set])
+
+(let [seen (set B)
+      aonly (filter #(not (seen %)) A)]
+  (printf "%s\n" (str/join " " aonly)))
+a a e
+
+;; We can simplify even further if aonly can be a set of unique
+;; elements in A that are not also in B, and the order of the elements
+;; does not matter.  Note that the original Perl code contains
+;; elements of A not also in B in the same order as they occur in A,
+;; and if there are duplicates of such elements in A, they will also
+;; be duplicated in aonly.
+(let [aonly (set/difference (set A) (set B))]
+  (printf "%s\n" (str/join " " aonly)))
+a e
+;;-----------------------------
+;; I can't think of any direct correspondence in Clojure of the Perl
+;; techniques used in this code.  The Clojure set examples above are
+;; quite concise.
+;;-----------------------------
+;; This version has a different behavior than the previous one.  It
+;; adds an item to @aonly at most one time, without duplicates, but
+;; the order is the same as the order the items appear in A.
+
+;; If order does not matter, then the set/difference example above is
+;; shorter and clearer.
+
+;; If order in aonly does matter, then here is one way to do it.
+(let [aonly (loop [aonly []
+                   s (seq A)
+                   seen #{}]  ; If we want to use a previously calculated
+                              ; set in seen, replace #{} with seen.
+              (if-let [item (first s)]
+                (if (seen item)
+                  (recur aonly (rest s) seen)
+                  (recur (conj aonly item) (rest s) (conj seen item)))
+                aonly))]
+  (printf "%s\n" (str/join " " aonly)))
+;;-----------------------------
+(let [hash (assoc hash "key1" 1)
+      hash (assoc hash "key2" 2)]
+  ;; ...
+  )
+;;-----------------------------
+(let [hash (assoc hash "key1" 1 "key2" 2)]
+  ;; ...
+  )
+;;-----------------------------
+;; TBD: What does this Perl code do?
+;;-----------------------------
+;; TBD: What does this Perl code do?
 ;;-----------------------------
