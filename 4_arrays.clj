@@ -875,3 +875,28 @@ diff=9 2 8 6 1
 Time Flies Like An Arrow
 Fruit Flies Like A Banana
 ;;-----------------------------
+
+;; @@PLEAC@@_4.10
+;;-----------------------------
+(def reversed (vec (reverse array)))  ; remove vec call if sequence result OK
+;;-----------------------------
+(loop [i (dec (count ARRAY))]
+  (when (>= i 0)
+    ;; do something with (ARRAY i)
+    (recur (dec i))))
+
+;; alternate version
+(doseq [i (range (dec (count ARRAY)) -1 -1)]
+  ;; do something with (ARRAY i)
+  )
+;;-----------------------------
+(def ascending (sort users))
+
+;; If you want to make the comparison function explicit, you can use
+;; this, which is equivalent to the above.
+(def ascending (sort #(compare %1 %2) users))
+(def descending (reverse ascending))
+
+;; one-step: sort with reverse comparison
+(def descending (sort #(compare %2 %1) users))
+;;-----------------------------
