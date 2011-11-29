@@ -787,3 +787,91 @@ union=9 2 8 7 6 5 3 1
 isect=7 5 3
 diff=9 2 8 6 1
 ;;-----------------------------
+
+;; @@PLEAC@@_4.9
+;;-----------------------------
+;; No vec call needed if the result can be a list.
+(let [ARRAY1 (vec (concat ARRAY1 ARRAY2))]
+  ;; ...
+  )
+;;-----------------------------
+;; I don't know of any Clojure code that looks like that in the Perl
+;; example for combining two lists.  The example above using concat
+;; will do the job.
+;;-----------------------------
+(def members ["Time" "Flies"])
+(def initiates ["An" "Arrow"])
+(let [members (vec (concat members initiates))]
+  ;; members is now ["Time" "Flies" "An" "Arrow"]
+  )
+;;-----------------------------
+;; Clojure data structures are immutable, so we can't write a splice
+;; function that modifies these data structures, but we can write a
+;; split that will return a new data structure that is similar in its
+;; value to the Perl one, after splice modifies it.
+
+;; First, we'll write a simpler version that only works with an offset
+;; in the range [0, n] where n is the length of the vector, and a
+;; non-negative length such that offset+length is also in the range
+;; [0,n].
+(defn splice [v offset length coll-to-insert]
+  (vec (concat (subvec v 0 offset)
+               coll-to-insert
+               (subvec v (+ offset length)))))
+
+;; Since the example below uses a splice with negative offset, I'll go
+;; ahead and give what I think is a full implementation of all cases
+;; of positive, 0, or negaitve arguments to Perl's splice (and also
+;; substr) for offset and length.  This helper function converts Perl
+;; offset and length arguments to Clojure start and end arguments for
+;; subvec (and also subs).  It is a bit of a mess because of all of
+;; the conditions to check.  There is likely code much like this
+;; buried inside of Perl's implementation of subs and splice.
+
+(defn ps-start-end
+  ([n offset]
+     (cond (neg? offset) [(max 0 (+ n offset)) n]
+           (> offset n) nil
+           :else [offset n]))
+  ([n offset c]
+     (let [start (if (neg? offset)
+                   (+ n offset)
+                   offset)
+           end (if (neg? c)
+                 (+ n c)
+                 (+ start c))]
+       (cond (neg? start) (if (neg? end)
+                            nil
+                            [0 (min n end)])
+             (> start n) nil
+             :else [start (min n (max start end))]))))
+
+;; Here we implement splice that takes a vector and either just an
+;; offset, an offset and a length, or offset, length, and collection
+;; of items to splice in.
+(defn splice-helper [v start end coll-to-insert]
+  (vec (concat (subvec v 0 start)
+               coll-to-insert
+               (subvec v end))))
+
+(defn splice
+  ([v offset]
+     (when-let [[start end] (ps-start-end (count v) offset)]
+       (splice-helper v start end [])))
+  ([v offset length]
+     (splice v offset length []))
+  ([v offset length coll-to-insert]
+     (when-let [[start end] (ps-start-end (count v) offset length)]
+       (splice-helper v start end coll-to-insert))))
+
+
+(let [members (splice members 2 0 (cons "Like" (seq initiates)))
+      _ (printf "%s\n" (str/join " " members))
+      members (splice members 0 1 ["Fruit"])
+      members (splice members -2 2 ["A" "Banana"])
+      ]
+  (printf "%s\n" (str/join " " members)))
+;;-----------------------------
+Time Flies Like An Arrow
+Fruit Flies Like A Banana
+;;-----------------------------
