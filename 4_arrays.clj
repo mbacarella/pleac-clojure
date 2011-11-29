@@ -474,26 +474,50 @@ Blackberry tastes good in a pie.
 ;;-----------------------------
 ;; This is nearly the same as functional style above, except this time
 ;; we want to count occurrences of items.
-(let [seen (reduce #(assoc %1 %2 (if-let [n (%1 %2)] (inc n) 1)) {} list)
+
+;; First we'll define a tiny helper function to increment the entry.
+;; In Perl, if you increment an undefined entry in a hash, it treats
+;; it as a 0 and increments it to 1.  In Clojure, trying to do (inc
+;; nil) throws an exception.  What we want is a function that when
+;; given nil, returns 1, and when given a number, increments it.
+;; We'll call it incn.  Clojure evaluates all values except false and
+;; nil as true, when the value is used as the test in an if
+;; expression.
+(defn incn [x]
+  (if x
+    (inc x)
+    1))
+
+(let [seen (reduce #(assoc %1 %2 (incn (%1 %2)))
+                   {} list)
       uniq (vec (keys seen))]   ; leave out vec if a list is good enough
   ;; ...
   )
 
-;; Note that while the following is simpler, it crashes because it
-;; tries to do (inc nil) when it finds that (seen
-;; "first-list-element") is nil.
-(let [seen (reduce #(assoc %1 %2 (inc (%1 %2))) {} list)
+;; fnil can help us in cases like the above, when we want a function
+;; like inc, except it doesn't work when passed nil.  (fnil f
+;; default-input) returns a function that works just like f does,
+;; except when it is given an argument of nil, it evaluates (f
+;; default-input) instead.  So incn above is the same as (fnil inc 0).
+(let [seen (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2)))
+                   {} list)
       uniq (vec (keys seen))]   ; leave out vec if a list is good enough
   ;; ...
   )
 
-;; fnil can make the first version a bit simpler.  As used here, (fnil
-;; inc 0), it says "do an inc, but if the argument is nil, replace it
-;; with a 0 before doing the inc".
-(let [seen (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2))) {} list)
+;; This expression (assoc map key (f (map key))) is so common that
+;; there is a function update-in that can shorten it a bit, as
+;; (update-in map [key] f).  It can also help update nested maps
+;; within maps, but we won't use it for that until later.  This
+;; generality is the reason that it takes a vector of key values,
+;; instead of only a single key value, and that is why the [] are
+;; there around key in the call to update-in.
+(let [seen (reduce #(update-in %1 [%2] (fnil inc 0))
+                   {} list)
       uniq (vec (keys seen))]   ; leave out vec if a list is good enough
-  ;; ...
+  (printf "seen='%s'\n" seen)
   )
+
 ;;-----------------------------
 ;; Here we call function (some-func item) the first time a new item is
 ;; encountered in the sequence 'list', but never if it is seen a 2nd
@@ -502,7 +526,9 @@ Blackberry tastes good in a pie.
 ;; used.
 (let [seen (reduce #(assoc %1 %2 (if-let [n (%1 %2)]
                                    (inc n)
-                                   (do (some-func %2) 1)))
+                                   (do
+                                     (some-func %2)
+                                     1)))
                    {} list)]
   ;; ...
   )
@@ -525,7 +551,7 @@ Blackberry tastes good in a pie.
 (require '[clojure.java.shell :as shell])
 
 (defn tally [coll]
-  (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2)))
+  (reduce #(update-in %1 [%2] (fnil inc 0))
           {} coll))
 
 ;; Note that we use the regex #"\s.*$" as opposed to the one #"\s.*\n"
@@ -671,26 +697,23 @@ isect=7 5 3
 ;; this Perl example is to use thread-local mutable variables,
 ;; introduced using with-local-vars.  These require using var-set to
 ;; change the value, and var-get to examine the value, which is a bit
-;; clunky.  However, if you really want to write something in
-;; imperative style, it may be your best bet.
+;; clunky.  (var-get union) can be abbreviated @union, which helps
+;; somewhat.  If you really want to write something in imperative
+;; style, with-local-vars may be your best bet.
 (let [[union isect]
       (with-local-vars [union {}
                         isect {}]
         (doseq [e (seq (concat a b))]
-          (let [union-val (var-get union)
-                isect-val (var-get isect)]
-            ;; The next let statement behaves as Perl's $union{$e}++,
-            ;; incrementing $union{$e}, but returning the value of
-            ;; $union{$e} before the increment occurs, which is nil in
-            ;; Clojure rather than Perl's undef, but both evaluate to
-            ;; false by Clojure 'and' or Perl &&.
-            (and (let [e-in-union (union-val e)]
-                   (var-set union (assoc union-val e
-                                         ((fnil inc 0) e-in-union)))
-                   e-in-union)
-                 (var-set isect (assoc isect-val e
-                                       ((fnil inc 0) (isect-val e)))))))
-        [(var-get union) (var-get isect)])
+          ;; The next let statement behaves as Perl's $union{$e}++,
+          ;; incrementing $union{$e}, but returning the value of
+          ;; $union{$e} before the increment occurs.  This is nil in
+          ;; Clojure rather than Perl's undef, but both evaluate to
+          ;; false by Clojure 'and' or Perl &&.
+          (and (let [in-union (@union e)]
+                 (var-set union (update-in @union [e] (fnil inc 0)))
+                 in-union)
+               (var-set isect (update-in @isect [e] (fnil inc 0)))))
+        [@union @isect])
       union (keys union)
       isect (keys isect)]
   (printf "union=%s\n" (str/join " " union))
@@ -724,7 +747,7 @@ diff=1 2 6 8 9
 ;; Function tally copied from an earlier example, repeated for easier
 ;; reference.
 (defn tally [coll]
-  (reduce #(assoc %1 %2 ((fnil inc 0) (%1 %2)))
+  (reduce #(update-in %1 [%2] (fnil inc 0))
           {} coll))
 
 (let [count (tally (concat a b))
