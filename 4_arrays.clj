@@ -900,3 +900,75 @@ Fruit Flies Like A Banana
 ;; one-step: sort with reverse comparison
 (def descending (sort #(compare %2 %1) users))
 ;;-----------------------------
+
+;; @@PLEAC@@_4.11
+;;-----------------------------
+;; The Perl code @FRONT = splice(@ARRAY, 0, $N); has the side effect
+;; of modifying @ARRAY, removing the first $N elements from it, and
+;; simultaneously assigning an array of those first $N elements to
+;; @FRONT.
+
+;; To get a similar effect in Clojure can be done as follows:
+(let [FRONT (subvec array 0 n)
+      array (subvec array n)]
+  ;; ...
+  )
+
+;; The Perl code @END = splice(@ARRAY, -$N); also has two side
+;; effects: removing the last $N elements from @ARRAY, and assigning
+;; an array containing those last $N elements to @END.
+(let [END (subvec array (- (count array) n))
+      array (subvec array 0 (- (count array) n))]
+  ;; ...
+  )
+
+;; or if you want to use the Clojure splice function defined earlier:
+(def array [1 2 3 4 5 6 7 8 9])
+(def n 4)
+(let [END (splice array 0 (- n))
+      array (splice array (- n))]
+  (printf "array=%s   END=%s\n" (str/join " " array) (str/join " " END))
+  ;; ...
+  )
+;;-----------------------------
+;; It is not really possible to write a Clojure function that mutates
+;; an immutable data structure, like Perl's shift2 and pop2 do.
+
+;; We could write a function that takes a vector v and return a vector
+;; of the two things: (1) a vector of the first two elements of v, and
+;; (2) a vector of all but the first two elements of v.  The caller of
+;; that function could then choose to use one or both of those values
+;; and bind them to symbols of its choice.
+(defn shift2 [v]
+  [(subvec v 0 2) (subvec v 2)])
+
+(defn pop2 [v]
+  (let [i (- (count v) 2)]
+    [(subvec v i) (subvec v 0 i)]))
+;;-----------------------------
+;; Clojure qw defined far above.  Reuse it here.
+(def friends (vec (qw "Peter Paul Mary Jim Tim")))
+
+(let [[[this that] friends] (shift2 friends)]
+  ;; this contains "Peter", that has "Paul", and friends has "Mary",
+  ;; "Jim", and "Tim".
+  (printf "this=%s  that=%s  friends=%s\n" this that (str/join " " friends)))
+
+(def beverages (vec (qw "Dew Jolt Cola Sprite Fresca")))
+(let [[pair beverages] (pop2 beverages)]
+  ;; (pair 0) contains Sprite, (pair 1) has Fresca, and beverages has
+  ;; ["Dew" "Jolt" "Cola"]
+  (printf "(pair 0)=%s  (pair 1)=%s  beverages=%s\n"
+          (pair 0) (pair 1) (str/join " " beverages)))
+;;-----------------------------
+;; Clojure doesn't have references exactly like Perl's.  It does have
+;; something called refs, but in Clojure they are intended primarily
+;; for handling coordinated concurrent changes to multiple refs with
+;; transactions.
+;;
+;; TBD: It isn't clear to me whether Clojure has a way to implement
+;; the behavior in this Perl code.
+;;
+;; $line[5] = \@list;
+;; @got = pop2( @{ $line[5] } );
+;;-----------------------------
