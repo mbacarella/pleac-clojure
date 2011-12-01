@@ -443,6 +443,8 @@ Blackberry tastes good in a pie.
 ;; @@PLEAC@@_4.6
 ;;-----------------------------
 ;; Iterative style -- requires a fair amount of verbiage.
+;; TBD: My use of seq/first/rest might be nonstandard here.  Is it
+;; correct for all cases?  If not, what case causes it to break?
 (loop [seen {}
        uniq []
        l (seq list)]
@@ -971,4 +973,93 @@ Fruit Flies Like A Banana
 ;;
 ;; $line[5] = \@list;
 ;; @got = pop2( @{ $line[5] } );
+;;-----------------------------
+
+;; @@PLEAC@@_4.12
+;;-----------------------------
+;; If we know that the matching item cannot possibly have a value that
+;; Clojure would evaluate as false, i.e. false or nil, then we can
+;; write the following.  Note that filter is lazy, so since we only
+;; ask for the first element, the rest of the elements after the
+;; first, if any, will not be computed.  (Exception: If array is a
+;; chunked sequence, the predicate function will be evaluated on all
+;; elements of array in the same chunk as the first one that returns a
+;; logical true value.)
+(def array [1 3 5 7 9 11 12 13 15])
+(def array [1 3 5 7 9 11 13 15])
+(if-let [match (first (filter even? array))]
+  (printf "Found matching item %s\n" match)
+  (printf "No matching item found\n"))
+
+;; Be careful!  That code will do the wrong thing if the value false
+;; or nil is in the array, and the criterion we are checking for is
+;; true for such a value.  For example:
+(def array [1 3 5 7 9 11 nil 13 15])
+(if-let [match (first (filter nil? array))]
+  (printf "Found matching item %s\n" match)
+  (printf "No matching item found\n"))
+No matching item found
+
+;; In this case, nil? returned true for the value nil in array, so
+;; filter did include nil in its output sequence.  However, this
+;; causes first to return the first element of the sequence, nil.  if
+;; and if-let treat nil as false, and thus does the else case.
+
+;; If we want to avoid that possibility, we can use the function some,
+;; and have a predicate function that returns something besides
+;; nil/false in the matching case.  One way to do that is to bundle up
+;; the matching value in a vector, because if and if-let treat [nil]
+;; and [false] as true.  After all, they are not the same as the
+;; values nil or false.
+(def array [1 3 5 7 9 11 nil 13 15])
+(if-let [[match] (some #(if (nil? %) [%]) array)]
+  (printf "Found matching item %s\n" match)
+  (printf "No matching item found\n"))
+Found matching item null
+;;-----------------------------
+;; The previous examples will work, of course.  If you want the index
+;; of the matching element, though, they won't do.  We could do it
+;; with loop.  Note that this works with vectors, but not with other
+;; collections, whereas earlier examples work with all kinds of
+;; collections.
+(let [match-idx (loop [i 0]
+                  (if (< i (count array))
+                    (if (even? (array i))
+                      i
+                      (recur (inc i)))
+                    nil))]
+  (if match-idx
+    (printf "Found matching item %s\n" (array match-idx))
+    (printf "No matching item found\n")))
+;;-----------------------------
+;; TBD: Read more about what this example is intended to do.  Should
+;; Clojure example create a new class?  Seems like overkill.
+;;-----------------------------
+;; Clojure loops like loop, dotimes, doseq all bind symbols locally,
+;; i.e. within their body, only.  They do not have any accessible
+;; value after the body of the loop is complete.  If you really want
+;; to do it in the way the Perl code is written, it seems you must
+;; write imperative style code, like this.
+(with-local-vars [i 0]
+  (loop []
+    (if (< @i (count array))
+      (if (even? (array @i))
+        true   ; stop the loop
+        (do (var-set i (inc @i))
+            (recur)))))
+  (if (< @i (count array))
+    (printf "Found matching item %s\n" (array @i))
+    (printf "No matching item found\n")))
+
+;; Another way is almost exactly like one of the examples above, where
+;; you return the loop index as the value of the loop expression.
+(let [i (loop [i 0]
+          (if (< i (count array))
+            (if (even? (array i))
+              i
+              (recur (inc i)))
+            i))]
+  (if (< i (count array))
+    (printf "Found matching item %s\n" (array i))
+    (printf "No matching item found\n")))
 ;;-----------------------------
