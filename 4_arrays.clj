@@ -35,7 +35,7 @@
   (catch java.io.FileNotFoundException e
     (printf "%s\n" e)
     (flush)
-    (. System (exit 1))))
+    (System/exit 1)))
 ;;-----------------------------
 
 
@@ -1093,4 +1093,46 @@ Found matching item null
 (def secondary-assistance (filter #(and (>= (income %) 26000)
                                         (< (income %) 30000))
                                   applicants))
+;;-----------------------------
+
+;; @@PLEAC@@_4.14
+;;-----------------------------
+(def sorted (sort unsorted))
+;; Or if you want to do an explicit comparison function:
+(def sorted (sort #(compare. %1 %2) unsorted))
+;; Note that Clojure does not have the distinction between Perl's <=>
+;; for comparing scalars as numbers vs. cmp for comparing scalars as
+;; strings, because Clojure does not auto-convert value between types
+;; the way Perl does.
+;;-----------------------------
+(require '[clojure.java.shell :as shell])
+
+(doseq [pid (sort pids)]
+  (printf "%d\n" pid))
+(printf "Select a process ID to kill:\n")
+(flush)  ; println does an automatic flush, but printf does not
+(let [pid (read-line)]
+  ;; Note that re-matches only returns true if the whole string
+  ;; matches the regexp.  It is the same as (re-find #"^\d+$" pid).
+  (when (not (re-matches #"\d+" pid))
+    (printf "Exiting...\n")  ; prints to *out*, which is likely not stderr
+    (flush)
+    (System/exit 1))
+  ;; TBD: Is there a 'platform-independent' API for killing a process
+  ;; available from Clojure or Java?  If so, use it here.  The
+  ;; following depends upon a process named "kill" being available on
+  ;; the system, so probably won't work on Windows, whereas Perl's
+  ;; subroutine kill would.
+  (shell/sh "kill" "-TERM" (str pid))
+  ;; TBD: Similar question for sleep.  I'm almost sure Java must have
+  ;; something here.
+  (shell/sh "sleep" "2")
+  (shell/sh "kill" "-KILL" (str pid)))
+(System/exit 0)
+;;-----------------------------
+(def descending (sort #(compare. %2 %1) unsorted))
+;;-----------------------------
+;; TBD: Put sort function in separate Clojure namespace
+;;-----------------------------
+(def all (sort #(compare. %2 %1) [4 19 8 3]))
 ;;-----------------------------
