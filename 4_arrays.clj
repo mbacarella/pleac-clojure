@@ -1063,3 +1063,34 @@ Found matching item null
     (printf "Found matching item %s\n" (array i))
     (printf "No matching item found\n")))
 ;;-----------------------------
+
+;; @@PLEAC@@_4.13
+;;-----------------------------
+(def matching (filter #(test %) collection))
+;;-----------------------------
+;; You can write Clojure code that works much like this Perl code, but
+;; filter is shorter to write in Clojure, much like grep is in Perl.
+(let [matching (loop [matching []
+                      s collection]
+                 (if-let [s (seq s)]
+                   (if (test (first s))
+                     (recur (conj matching (first s)) (next s))
+                     (recur matching (next s)))
+                   matching))]
+  (printf "matching=%s\n" (str/join " " matching)))
+;;-----------------------------
+(def nums [5 1000000 1000001 -2])
+(def bigs (filter #(> % 1000000) nums))
+(def bigs (filter #(> (users %) 10000000) (keys users)))
+;;-----------------------------
+(def matching (filter #(re-find #"^gnat " %)
+                      (str/split (:out (shell/sh "who")) #"\n")))
+;;-----------------------------
+;; Just calling function position on elements of employees, not
+;; treating them as objects.
+(def engineers (filter #(= (position %) "Engineer") employees))
+;;-----------------------------
+(def secondary-assistance (filter #(and (>= (income %) 26000)
+                                        (< (income %) 30000))
+                                  applicants))
+;;-----------------------------
