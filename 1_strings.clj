@@ -154,4 +154,51 @@
 ;; (print-ascii-code-for-char \a)
 ;; Number 97 is the ASCII character a
 
-;; ...
+;; @@PLEAC@@_1.6 Processing a String One Character at a Time
+;; strings are char sequences; map, reduce, and other
+;; sequencing functions are available for use on strings
+(def string'
+  (map (fn [b]
+         ;; do something with b
+         )
+       string))
+
+(defn print-uniq-chars [string]
+  (printf "unique chars are: %s\n"
+          (sort (set string))))
+
+;; => (print-uniq-chars "an apple a day")
+;; unique chars are: (\space \a \d \e \l \n \p \y)
+(defn print-ascii-value-sum [string]
+  (printf "sum is %s\n" (apply + (map int string))))
+;; => (print-ascii-value-sum "abc")
+;; sum is 294
+
+;; @@PLEAC@@_1.7 Reversing a String by Word or by Character
+(defn reverse-by-char [str] (reverse str))
+
+;; XXX: split on whitespace, then reverse
+
+;; @@PLEAC@@_1.8 Expanding and Compressing Tabs
+
+;; @@PLEAC@@_1.9 Expanding Variables in User Input
+
+;; @PLEAC@@_1.10 Controlling Cas
+(.toUpperCase "foo") ;; -> "FOO"
+(.toLowerCase "FOO") ;; -> "foo"
+
+;; @@PLEAC@@_1.11 Interpolating Functions and Expressions Within Strings
+
+;; @@PLEAC@@_1.12 Indenting Here Documents
+
+;; @@PLEAC@@_1.13 Reformatting Paragraphs
+
+;; @@PLEAC@@_1.14 Escaping Characters
+
+;; @@PLEAC@@_1.15 Trimming Blanks from the Ends of a String
+
+(.trim string)
+;; (.trim "  foo  ") => "foo"
+
+;; @@PLEAC@@_1.16 Parsing Comma-Separated Data
+
