@@ -1,6 +1,5 @@
-;; @@PLEAC@@_3.0 Dates and Times
-
-;; @@PLEAC@@_3.1 Introduction
+;; DATES AND TIMES
+;; @@PLEAC@@_3.0 Introduction
 ;;------------------------------------
 ;; Use a calendar to compute year, month, day, hour, minute and second values.
 
@@ -12,7 +11,7 @@
     (printf "Today is day %d of the current year.\n"
             (.get cal Calendar/DAY_OF_YEAR))))
 
-;; @@PLEAC@@_3.2 Finding Today's Date
+;; @@PLEAC@@_3.1 Finding Today's Date
 ;;------------------------------------
 (import '(java.util Calendar))
 (import '(java.util GregorianCalendar))
@@ -28,7 +27,7 @@
   (let [[day month year] (todays-date)]
     (printf "The current date is %d %02d %02d\n" year (inc month) day)))
 
-;; @@PLEAC@@_3.3 Converting DMYHMS to Epoch Seconds
+;; @@PLEAC@@_3.2 Converting DMYHMS to Epoch Seconds
 ;;------------------------------------
 (import '(java.util Calendar))
 (import '(java.util TimeZone))
@@ -49,7 +48,7 @@
 
 (epoch-seconds-of-dmyhms "UTC" 4 10 2011 12 30 55)
 
-;; @@PLEAC@@_3.4 Converting Epoch Seconds to DMYHMS
+;; @@PLEAC@@_3.3 Converting Epoch Seconds to DMYHMS
 ;;------------------------------------
 (import '(java.util Calendar))
 (import '(java.util Date))
@@ -72,4 +71,4 @@
     (printf "%02d-%02d-%d %02d:%02d:%02d\n"
             day (inc month) year hour minute seconds)))
 
-;; @@PLEAC_3.5 Adding or Subtracting from a Date
+;; 3.4 Adding or Subtracting from a Date

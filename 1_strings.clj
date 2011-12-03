@@ -1,5 +1,5 @@
-;; @@PLEAC@@_1.0 Strings
-;; @@PLEAC@@_1.1 Introduction
+;; STRINGS
+;; @@PLEAC@@_1.0 Introduction
 
 ;; ---------------------------
 (def string "\\n")                 ; two characters, \ and an n
@@ -13,7 +13,7 @@
     terminated by one double quote.
     ")
 
-;; @@PLEAC@@_1.2 Accessing Substrings
+;; @@PLEAC@@_1.1 Accessing Substrings
 (def value (subs string offset (+ offset count)))
 (def value (subs string offset (count string)))
 
@@ -100,7 +100,7 @@
 ;; his wasn'
 ;; -----------------------------
 
-;; @@PLEAC@@_1.3 Establishing a Default Value
+;; @@PLEAC@@_1.2 Establishing a Default Value
 
 ;; While Perl treats undef, 0, and "" as false, Clojure treats the
 ;; values false and nil as false, but 0 and "" as true.
@@ -143,7 +143,7 @@
     (nth *command-line-args* 0)
     "/tmp"))
 
-;; @@PLEAC@@_1.4 Exchanging Values Without Using Temporary Variables
+;; @@PLEAC@@_1.3 Exchanging Values Without Using Temporary Variables
 ;; -----------------------------
 
 ;; This Clojure code does _not_ exchange values of var1 and var2
@@ -183,7 +183,7 @@
 
     ))
 
-;; @@PLEAC@@_1.5 Converting Between ASCII Characters and Values
+;; @@PLEAC@@_1.4 Converting Between ASCII Characters and Values
 
 ;; -----------------------------
 (def num (int \a))     ; => ASCII code 97
@@ -196,12 +196,12 @@
 ;; (print-ascii-code-for-char \a)
 ;; Number 97 is the ASCII character a
 
-;; @@PLEAC@@_1.6 Processing a String One Character at a Time
-;; strings are available as char sequences
+;; @@PLEAC@@_1.5 Processing a String One Character at a Time
+;; Strings in Clojure can be treated as sequences, so the usual
+;; map, reduce, doseq functions apply.
+(defn one-char-at-a-time [f string] (doseq [b string] (f b)))
 
-(defn for-each [f string] (doseq [b string] (f b)))
-
-;; => (for-each
+;; => (one-char-at-a-time
 ;;       (fn [b] (printf "do something with: %c\n" b))
 ;;       "abc")
 ;; do something with: a
@@ -221,7 +221,7 @@
 ;; sum is 1248
 ;; -----------------------------
 
-;; @@PLEAC@@_1.7 Reversing a String by Word or Character
+;; @@PLEAC@@_1.6 Reversing a String by Word or Character
 ;; -----------------------------
 ;; Make namespace clojure.string usable with the abbreviated name
 ;; 'str'.
@@ -570,25 +570,25 @@
     (printf "%s\n" (unexpand line))))
 ;; -----------------------------
 
-;; @@PLEAC@@_1.8 Expanding and Compressing Tabs
+;; 1.8 Expanding and Compressing Tabs
 
-;; @@PLEAC@@_1.9 Expanding Variables in User Input
+;; 1.9 Expanding Variables in User Input
 
 ;; @PLEAC@@_1.10 Controlling Case
 (.toUpperCase "foo") ;; -> "FOO"
 (.toLowerCase "FOO") ;; -> "foo"
 
-;; @@PLEAC@@_1.11 Interpolating Functions and Expressions Within Strings
+;; 1.11 Interpolating Functions and Expressions Within Strings
 
-;; @@PLEAC@@_1.12 Indenting Here Documents
+;; 1.12 Indenting Here Documents
 
-;; @@PLEAC@@_1.13 Reformatting Paragraphs
+;; 1.13 Reformatting Paragraphs
 
-;; @@PLEAC@@_1.14 Escaping Characters
+;; 1.14 Escaping Characters
 
-;; @@PLEAC@@_1.15 Trimming Blanks from the Ends of a String
+;; 1.15 Trimming Blanks from the Ends of a String
 
 (.trim string)
 ;; (.trim "  foo  ") => "foo"
 
-;; @@PLEAC@@_1.16 Parsing Comma-Separated Data
+;; 1.16 Parsing Comma-Separated Data

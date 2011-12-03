@@ -1,4 +1,5 @@
-;; @@PLEAC@@_4.0 Arrays
+;; ARRAYS
+;; @@PLEAC@@_4.0 Introduction
 
 ;;-----------------------------
 ;; vectors
@@ -13,7 +14,7 @@
 (def tune ["The" "Star-Spangled" "Banner"])
 ;;-----------------------------
 
-;; @@PLEAC@@_4.1
+;; @@PLEAC@@_4.1 Specifying a List in Your Program
 (def a ["quick" "brown" "fox"])
 (defn qw
   "Split string on whitespace. Returns a seq."
@@ -39,7 +40,7 @@
 ;;-----------------------------
 
 
-;; @@PLEAC@@_4.2
+;; @@PLEAC@@_4.2 Printing a List with Commas
 ;;-----------------------------
 (defn commify-series [coll]
   (case (count coll)
@@ -58,7 +59,7 @@ I have [red yellow green] marbles.
 I have red yellow green marbles.
 ;;-----------------------------
 
-;; @@PLEAC@@_4.3
+;; @@PLEAC@@_4.3 Changing Array Size
 ;;-----------------------------
 ;; Clojure vectors cannot be modified, but we can create new vectors
 ;; from existing ones, with differences between the existing and new
@@ -129,7 +130,7 @@ Element #3 is `null'.
 ;; its size, even if that new value is nil.  To make a vector with a
 ;; smaller size, use subvec or pop as described above.
 
-;; @@PLEAC@@_4.4
+;; @@PLEAC@@_4.4 Doing Something with Every Element in a List
 ;;-----------------------------
 
 ;; Clojure is often written in a functional style, meaning that you
@@ -412,7 +413,7 @@ nil
 ;; alternatives are all mentioned above.
 ;;-----------------------------
 
-;; @@PLEAC@@_4.5
+;; @@PLEAC@@_4.5 Iterating Over an Array by Reference 
 ;;-----------------------------
 ;; Clojure does not have Perl's distinction between an array and an
 ;; array ref.  Clojure lists, vectors, maps, etc. can all contain
@@ -440,7 +441,7 @@ Blackberry tastes good in a pie.
     (printf "%s purrs hypnotically..\n" ((namelist :felines) i))))
 ;;-----------------------------
 
-;; @@PLEAC@@_4.6
+;; @@PLEAC@@_4.6 Extracting Unique Elements from a List
 ;;-----------------------------
 ;; Iterative style -- requires a fair amount of verbiage.
 ;; TBD: My use of seq/first/rest might be nonstandard here.  Is it
@@ -574,7 +575,7 @@ Blackberry tastes good in a pie.
   (printf "users logged in: %s\n" (str/join " " users)))
 ;;-----------------------------
 
-;; @@PLEAC@@_4.7
+;; @@PLEAC@@_4.7 Finding Elements in One Array but Not Another
 ;;-----------------------------
 ;; First we'll do it in a similar style to the Perl version.
 ;; seen is a map, and we produce a vector aonly.
@@ -640,7 +641,7 @@ a e
 ;; TBD: What does this Perl code do?
 ;;-----------------------------
 
-;; @@PLEAC@@_4.8
+;; @@PLEAC@@_4.8 Computing Union, Intersection, or Difference of Unique Lists
 ;;-----------------------------
 (def a [1 3 5 6 7 8])
 (def b [2 3 5 7 9])
@@ -790,7 +791,7 @@ isect=7 5 3
 diff=9 2 8 6 1
 ;;-----------------------------
 
-;; @@PLEAC@@_4.9
+;; @@PLEAC@@_4.9 Appending One Array to Another
 ;;-----------------------------
 ;; No vec call needed if the result can be a list.
 (let [ARRAY1 (vec (concat ARRAY1 ARRAY2))]
@@ -878,7 +879,7 @@ Time Flies Like An Arrow
 Fruit Flies Like A Banana
 ;;-----------------------------
 
-;; @@PLEAC@@_4.10
+;; @@PLEAC@@_4.10 Reversing an Array
 ;;-----------------------------
 (def reversed (vec (reverse array)))  ; remove vec call if sequence result OK
 ;;-----------------------------
@@ -903,7 +904,7 @@ Fruit Flies Like A Banana
 (def descending (sort #(compare %2 %1) users))
 ;;-----------------------------
 
-;; @@PLEAC@@_4.11
+;; @@PLEAC@@_4.11 Processing Multiple Elements of an Array
 ;;-----------------------------
 ;; The Perl code @FRONT = splice(@ARRAY, 0, $N); has the side effect
 ;; of modifying @ARRAY, removing the first $N elements from it, and
@@ -975,7 +976,7 @@ Fruit Flies Like A Banana
 ;; @got = pop2( @{ $line[5] } );
 ;;-----------------------------
 
-;; @@PLEAC@@_4.12
+;; @@PLEAC@@_4.12 Finding the First List Element That Passes a Test
 ;;-----------------------------
 ;; If we know that the matching item cannot possibly have a value that
 ;; Clojure would evaluate as false, i.e. false or nil, then we can
@@ -1064,7 +1065,7 @@ Found matching item null
     (printf "No matching item found\n")))
 ;;-----------------------------
 
-;; @@PLEAC@@_4.13
+;; @@PLEAC@@_4.13 Finding All Elements in an Array Matching Certain Criteria
 ;;-----------------------------
 (def matching (filter #(test %) collection))
 ;;-----------------------------
@@ -1095,7 +1096,7 @@ Found matching item null
                                   applicants))
 ;;-----------------------------
 
-;; @@PLEAC@@_4.14
+;; @@PLEAC@@_4.14 Sorting an Array Numerically
 ;;-----------------------------
 (def sorted (sort unsorted))
 ;; Or if you want to do an explicit comparison function:

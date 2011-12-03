@@ -1,4 +1,6 @@
-;; @@PLEAC@@_2.0 Numbers
+;; NUMBERS
+;; [ There's no section 2.0 in this chapter, according to the perl raw source
+;;   on the PLEAC web site. ]
 ;; @@PLEAC@@_2.1 Checking Whether a String Is a Valid Number
 
 (import '(java.text NumberFormat ParseException)
@@ -224,7 +226,9 @@
 (printf "log10(10,000) = %f" answer)
 
 ;; @@PLEAC@@_2.14 Multiplying Matrices
-;; very academic purely functional implementation
+;; This is a very academic, purely functional implementation of
+;; multiply-matrix.  A performance critical implementation would
+;; likely not use Clojure's immutable vectors.
 (defn multiply-matrix [m1 m2]
   (let [dim (fn [m] [(count m) (count (first m))])
         [r1 c1] (dim m1)
@@ -371,10 +375,9 @@
         s (apply str (interpose "\n" (cons head lines)))]
     (println s)))
 
-(defn main [argv]
-  (loop [i 0]
-    (if (< i (count argv))
-      (let [n (Integer/parseInt (.get argv i))]
-        (do
-          (print-factors n (factorize n))
-          (recur (inc i)))))))
+(loop [i 0]
+  (if (< i (count *command-line-args*))
+    (let [n (Integer/parseInt (.get argv i))]
+      (do
+        (print-factors n (factorize n))
+        (recur (inc i))))))
