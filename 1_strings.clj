@@ -197,13 +197,17 @@
 ;; Number 97 is the ASCII character a
 
 ;; @@PLEAC@@_1.6 Processing a String One Character at a Time
-;; strings are char sequences; map, reduce, and other
-;; sequencing functions are available for use on strings
-(def string'
-  (map (fn [b]
-         ;; do something with b
-         )
-       string))
+;; strings are available as char sequences
+
+(defn for-each [f string] (doseq [b string] (f b)))
+
+;; => (for-each
+;;       (fn [b] (printf "do something with: %c\n" b))
+;;       "abc")
+;; do something with: a
+;; do something with: b
+;; do something with: c
+;; ----------------------------
 
 (defn print-uniq-chars [string]
   (printf "unique chars are: %s\n"
@@ -570,7 +574,7 @@
 
 ;; @@PLEAC@@_1.9 Expanding Variables in User Input
 
-;; @PLEAC@@_1.10 Controlling Cas
+;; @PLEAC@@_1.10 Controlling Case
 (.toUpperCase "foo") ;; -> "FOO"
 (.toLowerCase "FOO") ;; -> "foo"
 
