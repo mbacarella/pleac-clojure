@@ -269,6 +269,7 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
+;; mbac for jafingerhut: don't you need to close the file handle returned by io/reader?
 (doseq [filename *command-line-args*]
   (doseq [line (line-seq (io/reader filename))]
     (when (and (= line (str/reverse line))
