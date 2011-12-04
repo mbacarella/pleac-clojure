@@ -1,4 +1,3 @@
-;; DATES AND TIMES
 ;; @@PLEAC@@_3.0 Introduction
 ;;------------------------------------
 ;; Use a calendar to compute year, month, day, hour, minute and second values.

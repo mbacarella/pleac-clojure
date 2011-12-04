@@ -1,6 +1,3 @@
-;; NUMBERS
-;; [ There's no section 2.0 in this chapter, according to the perl raw source
-;;   on the PLEAC web site. ]
 ;; @@PLEAC@@_2.1 Checking Whether a String Is a Valid Number
 
 (import '(java.text NumberFormat ParseException)

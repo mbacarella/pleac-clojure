@@ -1,4 +1,3 @@
-;; STRINGS
 ;; @@PLEAC@@_1.0 Introduction
 
 ;; ---------------------------
