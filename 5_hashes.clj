@@ -161,14 +161,15 @@
 ;; collection in Clojure.
 
 (defn countfrom [file]
-  (let [lines (line-seq (io/reader file))
-        match-sender (fn [line]
-                       (second (re-matches #"^From: (.*)" line)))
-        from (reduce (fn [map line]
-                       (let [sender (match-sender line)
-                             cur (get map sender 0)]
-                         (assoc map sender (inc cur))))
-                     {}
-                     lines)]
-    (doseq [[person n] (sort from)]
-      (printf "%s: %d\n" person n))))
+  (with-open [rdr (io/reader file)]
+    (let [lines (line-seq rdr)
+          match-sender (fn [line]
+                         (second (re-matches #"^From: (.*)" line)))
+          from (reduce (fn [map line]
+                         (let [sender (match-sender line)
+                               cur (get map sender 0)]
+                           (assoc map sender (inc cur))))
+                       {}
+                       lines)]
+      (doseq [[person n] (sort from)]
+        (printf "%s: %d\n" person n)))))
