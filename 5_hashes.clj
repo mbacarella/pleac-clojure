@@ -1,4 +1,3 @@
-;; HASHES
 ;; @@PLEAC@@_5.0 Introduction
 
 (ns pleac-section-5

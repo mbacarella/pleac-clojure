@@ -1,5 +1,4 @@
-;; @@PLEAC@@_1.0 Strings
-;; @@PLEAC@@_1.1 Introduction
+;; @@PLEAC@@_1.0 Introduction
 
 ;; ---------------------------
 (def string "\\n")                 ; two characters, \ and an n
@@ -13,7 +12,7 @@
     terminated by one double quote.
     ")
 
-;; @@PLEAC@@_1.2 Accessing Substrings
+;; @@PLEAC@@_1.1 Accessing Substrings
 (def value (subs string offset (+ offset count)))
 (def value (subs string offset (count string)))
 
@@ -100,7 +99,7 @@
 ;; his wasn'
 ;; -----------------------------
 
-;; @@PLEAC@@_1.3 Establishing a Default Value
+;; @@PLEAC@@_1.2 Establishing a Default Value
 
 ;; While Perl treats undef, 0, and "" as false, Clojure treats the
 ;; values false and nil as false, but 0 and "" as true.
@@ -143,7 +142,7 @@
     (nth *command-line-args* 0)
     "/tmp"))
 
-;; @@PLEAC@@_1.4 Exchanging Values Without Using Temporary Variables
+;; @@PLEAC@@_1.3 Exchanging Values Without Using Temporary Variables
 ;; -----------------------------
 
 ;; This Clojure code does _not_ exchange values of var1 and var2
@@ -183,9 +182,45 @@
 
     ))
 
-;; @@PLEAC@@_1.5 Converting Between ASCII Characters and Values
+;; @@PLEAC@@_1.4 Converting Between ASCII Characters and Values
 
-;; @@PLEAC@@_1.6
+;; -----------------------------
+(def num (int \a))     ; => ASCII code 97
+(def char (char 97))   ; => \a
+;; -----------------------------
+
+(defn print-ascii-code-for-char [c]
+  (printf "Number %d is character '%c'\n" (int c) c))
+
+;; (print-ascii-code-for-char \a)
+;; Number 97 is the ASCII character a
+
+;; @@PLEAC@@_1.5 Processing a String One Character at a Time
+;; Strings in Clojure can be treated as sequences, so the usual
+;; map, reduce, doseq functions apply.
+(defn one-char-at-a-time [f string] (doseq [b string] (f b)))
+
+;; => (one-char-at-a-time
+;;       (fn [b] (printf "do something with: %c\n" b))
+;;       "abc")
+;; do something with: a
+;; do something with: b
+;; do something with: c
+;; ----------------------------
+
+(defn print-uniq-chars [string]
+  (printf "unique chars are: %s\n"
+          (sort (set string))))
+;; => (print-uniq-chars "an apple a day")
+;; unique chars are: (\space \a \d \e \l \n \p \y)
+;; -----------------------------
+(defn print-ascii-value-sum [string]
+  (printf "sum is %s\n" (apply + (map int string))))
+;; => (print-ascii-value-sum "an apple a day")
+;; sum is 1248
+;; -----------------------------
+
+;; @@PLEAC@@_1.6 Reversing a String by Word or Character
 ;; -----------------------------
 ;; Make namespace clojure.string usable with the abbreviated name
 ;; 'str'.
@@ -275,7 +310,7 @@
 ;;
 ;; % print-palindromes.clj /usr/share/dict/words
 
-;; @@PLEAC@@_1.7
+;; @@PLEAC@@_1.7 Reversing a String by Word or by Character
 
 ;; -----------------------------
 ;; Clojure's built-in regexp matching functions have something like
@@ -365,8 +400,6 @@
 ;; every time through the loop.  Bind the regexp to a symbol using
 ;; let, outside of the loop, to compile it only once.
         
-           
-  
 ;; My favorite version of this requires defining slightly modified
 ;; versions of clojure.core/re-groups and clojure.string/replace-first
 
@@ -536,3 +569,26 @@
   (doseq [line (line-seq (io/reader filename))]
     (printf "%s\n" (unexpand line))))
 ;; -----------------------------
+
+;; 1.8 Expanding and Compressing Tabs
+
+;; 1.9 Expanding Variables in User Input
+
+;; @PLEAC@@_1.10 Controlling Case
+(.toUpperCase "foo") ;; -> "FOO"
+(.toLowerCase "FOO") ;; -> "foo"
+
+;; 1.11 Interpolating Functions and Expressions Within Strings
+
+;; 1.12 Indenting Here Documents
+
+;; 1.13 Reformatting Paragraphs
+
+;; 1.14 Escaping Characters
+
+;; 1.15 Trimming Blanks from the Ends of a String
+
+(.trim string)
+;; (.trim "  foo  ") => "foo"
+
+;; 1.16 Parsing Comma-Separated Data
