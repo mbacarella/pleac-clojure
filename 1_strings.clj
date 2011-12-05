@@ -399,7 +399,7 @@
 ;; Performance note: Same as above about the regexp being recompiled
 ;; every time through the loop.  Bind the regexp to a symbol using
 ;; let, outside of the loop, to compile it only once.
-        
+  
 ;; My favorite version of this requires defining slightly modified
 ;; versions of clojure.core/re-groups and clojure.string/replace-first
 
