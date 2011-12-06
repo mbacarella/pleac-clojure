@@ -1122,8 +1122,8 @@ Found matching item null
   ;; TBD: Is there a 'platform-independent' API for killing a process
   ;; available from Clojure or Java?  If so, use it here.  The
   ;; following depends upon a process named "kill" being available on
-  ;; the system, so probably won't work on Windows, whereas Perl's
-  ;; subroutine kill would.
+  ;; the system, so probably won't work on Windows, whereas I believe
+  ;; Perl's subroutine kill would.
   (shell/sh "kill" "-TERM" (str pid))
   ;; TBD: Similar question for sleep.  I'm almost sure Java must have
   ;; something here.
@@ -1136,4 +1136,200 @@ Found matching item null
 ;; TBD: Put sort function in separate Clojure namespace
 ;;-----------------------------
 (def all (sort #(compare. %2 %1) [4 19 8 3]))
+;;-----------------------------
+
+;; @@PLEAC@@_4.15
+;;-----------------------------
+(def ordered (sort #(compare %1 %2) unordered))
+;;-----------------------------
+(let [precomputed (map (fn [x] [(compute x) x]) unordered)
+      ordered-precomputed (sort #(compare (%1 0) (%2 0)) precomputed)
+      ordered (map #(% 1) ordered-precomputed)]
+  ;; ...
+  )
+;;-----------------------------
+(def ordered (map #(% 1)
+                  (sort #(compare (%1 0) (%2 0))
+                        (map (fn [x] [(compute x) x])
+                             unordered))))
+;; Since each list returned by one function always becomes the last
+;; argument of the next, you can also use ->> to make code that looks
+;; more like the sequential example above.  The macro transforms it
+;; into code like the previous example.
+(def ordered (->> unordered
+                  (map (fn [x] [(compute x) x]))
+                  (sort #(compare (%1 0) (%2 0)))
+                  (map #(% 1))))
+;;-----------------------------
+(def ordered (sort #(compare (name %1) (name %2)) employees))
+;;-----------------------------
+(doseq [employee (sort #(compare (name %1) (name %2)) employees)]
+  (printf "%s earns $%s\n" (name employee) (salary employee)))
+;;-----------------------------
+(let [sorted-employees (sort #(compare (name %1) (name %2)) employees)]
+  (doseq [employee sorted-employees]
+    (printf "%s earns $%s\n" (name employee) (salary employee)))
+  ;; load bonus
+  (doseq [employee sorted-employees]
+    (if (bonus (ssn employee))
+      (printf "%s got a bonus!\n" (name employee)))))
+;;-----------------------------
+;; Unlike Perl, Clojure treats the numerical value 0 as true when it
+;; is used as a condition in if/when/and/or.  Clojure only treats the
+;; values nil and false as false.
+
+;; You can of course write a multi-key comparison function like this,
+;; as you can in Perl:
+
+(def sorted (sort #(let [cmp1 (compare (name %1) (name %2))]
+                     (if (not= cmp1 0)
+                       cmp1
+                       (let [cmp2 (compare (age %2) (age %1))]
+                         (if (not= cmp2 0)
+                           cmp2
+                           (compare (compare (salary %1) (salary %2)))))))
+                  employees))
+
+;; But we'd like something more compact than that.
+
+;; It is straightforward to write a function that takes a sequence of
+;; results of comparison operators, each of which is negative, 0, or
+;; positive, and returns the first one that is non-0, or 0 if all of
+;; them are 0.
+(defn multicmp [s]
+  (if-let [first-non-0 (first (filter #(not= % 0) s))]
+    first-non-0
+    0))
+
+(def sorted (sort #(multicmp [ (compare (name %1) (name %2))
+                               (compare (age %2) (age %1))
+                               (compare (salary %1) (salary %2)) ]) employees))
+
+;; The downside of this approach is that it always evaluates all of
+;; the (compare ...) calls every time it compares two items, even if
+;; the first one decides the issue.  It would be nicer if it did a
+;; short-circuit evaluation like Perl's || or Clojure's or.
+
+;; Fortunately, if there is a short-circuit evaluation that you wish
+;; were built into Clojure, but it isn't yet, you can make your own in
+;; Clojure using macros.
+
+(defmacro multicmp
+  ([x] x)
+  ([x & next]
+     `(let [cmp# ~x]
+        (if (not= cmp# 0)
+          cmp#
+          (multicmp ~@next)))))
+
+;; We wouldn't normally write comparison functions this way.  I'm
+;; doing it only for testing that the multicmp works as expected,
+;; including doing short-circuit evaluation.  See further below for a
+;; more typical example.
+
+(defn cmp1 [x y]
+  (println "Doing (cmp1" x y")")
+  (compare (x :name) (y :name)))
+
+(defn cmp2 [x y]
+  (println "Doing (cmp2" x y")")
+  (compare (x :age) (y :age)))
+
+(defn cmp3 [x y]
+  (println "Doing (cmp3" x y")")
+  (compare (x :salary) (y :salary)))
+
+(defn fancycmp [a b]
+  (multicmp (cmp1 a b)
+            (cmp2 a b)
+            (cmp3 a b)))
+
+(def john1 {:name "John", :age 28, :salary 35000.00 })
+(def mary  {:name "Mary", :age 25, :salary 35000.00 })
+(def john2 {:name "John", :age 37, :salary 40000.00 })
+(def john3 {:name "John", :age 28, :salary 30000.00 })
+
+(fancycmp john1 mary)
+Doing (cmp1 {:age 28, :name John, :salary 35000.0} {:age 25, :name Mary, :salary 35000.0} )
+-3
+
+(fancycmp john1 john2)
+Doing (cmp1 {:age 28, :name John, :salary 35000.0} {:age 37, :name John, :salary 40000.0} )
+Doing (cmp2 {:age 28, :name John, :salary 35000.0} {:age 37, :name John, :salary 40000.0} )
+-1
+
+(fancycmp john1 john3)
+Doing (cmp1 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary 30000.0} )
+Doing (cmp2 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary 30000.0} )
+Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary 30000.0} )
+1
+
+;; Here is the more typical example.  Note that unlike the multicmp
+;; function, we do not need to put the compare expressions in [ ].
+
+(def sorted (sort #(multicmp (compare (name %1) (name %2))
+                             (compare (age %2) (age %1))
+                             (compare (salary %1) (salary %2))) employees))
+;;-----------------------------
+;; There may be a POSIX library for Clojure or Java that contains
+;; getpwent, but for this example we will read /etc/passwd to get the
+;; desired info.
+(require '[clojure.string :as str])
+(let [lines (str/split (slurp "/etc/passwd") #"\n")
+      usernames (map #(first (str/split % #":")) lines)
+      usernames (sort usernames)]
+  (doseq [user usernames]
+    (printf "%s\n" user)))
+;;-----------------------------
+(def sorted (sort #(compare (subs %1 1 2) (subs %2 1 2)) names))
+;;-----------------------------
+(def sorted (sort #(compare (count %1) (count %2)) strings))
+;;-----------------------------
+(let [temp (map (fn [x] [(count x) x]) strings)
+      temp (sort #(compare (%1 0) (%2 0)) temp)
+      sorted (map #(% 1) temp)]
+  ;; ...
+  )
+;;-----------------------------
+(def ordered (->> strings
+                  (map (fn [x] [(count x) x]))
+                  (sort #(compare (%1 0) (%2 0)))
+                  (map #(% 1))))
+;;-----------------------------
+;; To compare numerically rather than by string comparison, we convert
+;; the decimal strings found to numbers.  Treat a string with no
+;; numbers as if it had a 0, for sorting purposes.
+(let [temp (map (fn [x] [(if-let [y (re-find #"\d+" x)]
+                           (read-string y) 0)
+                         x]) fields)
+      sorted-temp (sort #(compare (%1 0) (%2 0)) temp)
+      sorted-fields (map #(% 1) sorted-temp)]
+  ;; ...
+  )
+;;-----------------------------
+(def sorted-fields (->> fields
+                        (map (fn [x] [(if-let [y (re-find #"\d+" x)]
+                                        (read-string y) 0)
+                                      x]))
+                        (sort #(compare (%1 0) (%2 0)))
+                        (map #(% 1))))
+;;-----------------------------
+;; Note: To get this to work on my Mac, where /etc/passwd has some
+;; comment lines beginning with #, add this as the second line:
+;;     (filter #(not (str/blank? (str/replace % #"#.*$" ""))))
+
+;; Clojure does not have Perl's auto-conversion between string and
+;; numeric types, so we will convert strings representing decimal
+;; numbers to numbers using read-string.  Java's Integer/parseInt
+;; would also work.
+(->> (str/split (slurp "/etc/passwd") #"\n")
+     (map (fn [ln] (let [[login _ uid-str gid-str] (str/split ln #":")]
+                     [ln (read-string gid-str) (read-string uid-str) login])))
+     (sort #(multicmp (compare (%1 1) (%2 1))  ; gid
+                      (compare (%1 2) (%2 2))  ; uid
+                      (compare (%1 3) (%2 3))  ; login
+                      ))
+     (map #(% 0))
+     (str/join "\n")
+     (print))
 ;;-----------------------------
