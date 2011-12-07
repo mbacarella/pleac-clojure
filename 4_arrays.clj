@@ -1,7 +1,10 @@
 ;; @@PLEAC@@_4.0 Introduction
 
 ;;-----------------------------
-;; vectors
+;; Vectors.  Unlike Perl, the effect of these two lines is not
+;; equivalent.  The first creates a vector of 4 items, all strings.
+;; The second creates a vector of 3 items, where the first 2 are
+;; strings, and the 3rd is a vector containing 2 strings.
 (def simple ["this" "that" "the" "other"])
 (def nested ["this" "that" ["the" "other"]])
 
@@ -1098,16 +1101,28 @@ Found matching item null
 
 ;; @@PLEAC@@_4.14 Sorting an Array Numerically
 ;;-----------------------------
+;; Clojure does not auto-convert between numbers and strings depending
+;; upon how they are used.  There is no built-in comparison function
+;; like Perl's <=> operator that takes two strings, tries to convert
+;; them to numbers, and compared them numerically.  If you have
+;; strings containing numbers in Clojure, and want to compare them
+;; numerically, you must convert the strings to numbers explicitly.
+;; If they are integers that fit into a Java long, Java's
+;; Long/parseLong might be what you want.  Bigger integers can be
+;; parsed with BigInteger's constructor like this:
+;; (BigInteger. "577777").  Double/parseDouble tries to parse and
+;; return a double value.
+
+;; (compare x y) can be used like Perl's cmp or <=> to compare two
+;; values, as long as their types are the same, or 'similar enough'.
+;; Different numeric types can be compared with compare, for example.
 (def sorted (sort unsorted))
 ;; Or if you want to do an explicit comparison function:
-(def sorted (sort #(compare. %1 %2) unsorted))
-;; Note that Clojure does not have the distinction between Perl's <=>
-;; for comparing scalars as numbers vs. cmp for comparing scalars as
-;; strings, because Clojure does not auto-convert value between types
-;; the way Perl does.
+(def sorted (sort #(compare %1 %2) unsorted))
 ;;-----------------------------
 (require '[clojure.java.shell :as shell])
 
+;; pids is an unsorted sequence of numeric process IDs
 (doseq [pid (sort pids)]
   (printf "%d\n" pid))
 (printf "Select a process ID to kill:\n")
@@ -1131,14 +1146,26 @@ Found matching item null
   (shell/sh "kill" "-KILL" (str pid)))
 (System/exit 0)
 ;;-----------------------------
-(def descending (sort #(compare. %2 %1) unsorted))
+(def descending (sort #(compare %2 %1) unsorted))
 ;;-----------------------------
-;; TBD: Put sort function in separate Clojure namespace
+;; You can use your own function of two arguments as a comparison
+;; function.  Like for Perl, it should return consistent results, and
+;; represent a total order on the items being sorted.  Unlike Perl,
+;; there are no special calling conventions with named parameters like
+;; Perl's $a and $b -- just a normal function of two arguments.  For
+;; this reason, there is no problem calling a comparison function
+;; defined in a different namespace than the namespace where sort is
+;; called.
+(ns sort.subs)
+(defn revnum [a b] (compare b a))
+
+(ns other.namespace)
+(sort sort.subs/revnum [4 19 8 3])
 ;;-----------------------------
-(def all (sort #(compare. %2 %1) [4 19 8 3]))
+(def all (sort #(compare %2 %1) [4 19 8 3]))
 ;;-----------------------------
 
-;; @@PLEAC@@_4.15
+;; @@PLEAC@@_4.15 Sorting a List by Computable Field
 ;;-----------------------------
 (def ordered (sort #(compare %1 %2) unordered))
 ;;-----------------------------
@@ -1152,10 +1179,11 @@ Found matching item null
                   (sort #(compare (%1 0) (%2 0))
                         (map (fn [x] [(compute x) x])
                              unordered))))
-;; Since each list returned by one function always becomes the last
-;; argument of the next, you can also use ->> to make code that looks
-;; more like the sequential example above.  The macro transforms it
-;; into code like the previous example.
+;; Since each sequence returned by one function always becomes the
+;; last argument of the next, you can also use ->> to make code that
+;; looks more like the example with 'let' above.  The macro ->>
+;; transforms the following expression into code like the previous
+;; example.
 (def ordered (->> unordered
                   (map (fn [x] [(compute x) x]))
                   (sort #(compare (%1 0) (%2 0)))
@@ -1211,8 +1239,8 @@ Found matching item null
 ;; short-circuit evaluation like Perl's || or Clojure's or.
 
 ;; Fortunately, if there is a short-circuit evaluation that you wish
-;; were built into Clojure, but it isn't yet, you can make your own in
-;; Clojure using macros.
+;; were built into Clojure, but it isn't yet, you can make your own
+;; using macros.
 
 (defmacro multicmp
   ([x] x)
@@ -1222,8 +1250,8 @@ Found matching item null
           cmp#
           (multicmp ~@next)))))
 
-;; We wouldn't normally write comparison functions this way.  I'm
-;; doing it only for testing that the multicmp works as expected,
+;; We wouldn't normally write comparison functions as shown below.
+;; I'm doing it only for testing that the multicmp works as expected,
 ;; including doing short-circuit evaluation.  See further below for a
 ;; more typical example.
 
@@ -1265,7 +1293,8 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 1
 
 ;; Here is the more typical example.  Note that unlike the multicmp
-;; function, we do not need to put the compare expressions in [ ].
+;; function, with the multicmp macro we do not need to put the compare
+;; expressions in [ ].
 
 (def sorted (sort #(multicmp (compare (name %1) (name %2))
                              (compare (age %2) (age %1))
@@ -1320,8 +1349,8 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 
 ;; Clojure does not have Perl's auto-conversion between string and
 ;; numeric types, so we will convert strings representing decimal
-;; numbers to numbers using read-string.  Java's Integer/parseInt
-;; would also work.
+;; numbers to numbers using read-string.  Java's Long/parseLong would
+;; also work.
 (->> (str/split (slurp "/etc/passwd") #"\n")
      (map (fn [ln] (let [[login _ uid-str gid-str] (str/split ln #":")]
                      [ln (read-string gid-str) (read-string uid-str) login])))
