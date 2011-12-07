@@ -1140,9 +1140,7 @@ Found matching item null
   ;; the system, so probably won't work on Windows, whereas I believe
   ;; Perl's subroutine kill would.
   (shell/sh "kill" "-TERM" (str pid))
-  ;; TBD: Similar question for sleep.  I'm almost sure Java must have
-  ;; something here.
-  (shell/sh "sleep" "2")
+  (Thread/sleep 2000)  ; units are millisec
   (shell/sh "kill" "-KILL" (str pid)))
 (System/exit 0)
 ;;-----------------------------
@@ -1361,4 +1359,80 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
      (map #(% 0))
      (str/join "\n")
      (print))
+;;-----------------------------
+
+;; @@PLEAC@@_4.16 Implementing a Circular List
+;;-----------------------------
+;; Two method will be given, one using Clojure vectors, the other for
+;; Clojure lists/queues.  These data structures have different
+;; performance characteristics for operations at the beginning or end.
+
+;; Finger trees are another data structure that make all of these
+;; operations O(log n), including some other operations not listed
+;; here, like splitting a list at an arbitrary item in the middle, or
+;; concatenating two lists together.
+;;
+;; See http://github.com/clojure/data.finger-tree
+
+;; "O(1)" means O(log n), and the base of the logarithm is 32.
+
+;; Abstract     Function on               Function on
+;; operation    vector                    list/queue
+;; -----------  ------------------------  ------------------
+
+;; Remove from  (v 0) or (first v)        (first l)
+;; beginning    returns first item
+;;              "O(1)"                    O(1)
+;;
+;;              (subvec v 1) return vec   (rest l)
+;;              with first item removed
+;;              O(1)                      O(1)
+
+;; Add x to     (vec (cons x (seq v)))    (conj x l)
+;; beginning    O(n)                      O(1)
+
+;; Remove from  (peek v)                  (last l)
+;; end          returns last item
+;;              "O(1)"                    O(n)
+;;
+;;              (pop v) return vec        (bustlast l)
+;;              with last item removed
+;;              "O(1)"?                   O(n)
+
+;; Add x to     (conj v x)                (concat l (list x))
+;; end          "O(1)"                    O(n)
+
+;; Using vectors
+(def circular [1 2 3 4 5])
+(let [new-circular (vec (cons (peek circular)  ; the last shall be first
+                              (seq (pop circular))))]   ; O(n) total
+  (printf "%s\n" (str/join " " new-circular)))
+
+(let [new-circular (conj (subvec circular 1)   ; and vice versa
+                         (first circular))]    ; "O(1)" total
+  (printf "%s\n" (str/join " " new-circular)))
+
+;; Using lists
+(def circular '(1 2 3 4 5))
+(let [new-circular (cons (last circular) (butlast circular))]
+  (printf "%s\n" (str/join " " new-circular)))   ; the last shall be first
+                                                 ; O(n) total
+
+(let [new-circular (concat (rest circular) (list (first circular)))]
+  (printf "%s\n" (str/join " " new-circular)))   ; and vice versa
+                                                 ; O(n) total
+;;-----------------------------
+;; I'll use vectors here.
+
+;; Since we cannot mutate v, we'll return the first item, and a new
+;; vector that is rotated left from the input vector.
+(defn grab-and-rotate [v]
+  [(v 0) (conj (subvec v 1) (v 0))])
+  
+(loop [processes [1 2 3 4 5]]
+  (let [[process next-processes] (grab-and-rotate processes)]
+    (printf "Handling process %d\n" process)
+    (flush)
+    (Thread/sleep 1000)  ; units are millisec
+    (recur next-processes)))
 ;;-----------------------------
