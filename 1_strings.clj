@@ -270,10 +270,11 @@
 
 ;; mbac for jafingerhut: don't you need to close the file handle returned by io/reader?
 (doseq [filename *command-line-args*]
-  (doseq [line (line-seq (io/reader filename))]
-    (when (and (= line (str/reverse line))
-               (>= (count line) 5))
-      (printf "%s\n" line))))
+  (with-open [rdr (io/reader filename)]
+    (doseq [line (line-seq rdr)]
+      (when (and (= line (str/reverse line))
+                 (>= (count line) 5))
+        (printf "%s\n" line)))))
 
 ;; Save the above in a file print-palindromes.clj, then run from
 ;; command prompt (replace path to wherever your clojure-1.3.0.jar
@@ -510,8 +511,9 @@
 ;; Use your preferred version of expand here.
 
 (doseq [filename *command-line-args*]
-  (doseq [line (line-seq (io/reader filename))]
-    (printf "%s\n" (expand line))))
+  (with-open [rdr (io/reader filename)]
+    (doseq [line (line-seq rdr)]
+      (printf "%s\n" (expand line)))))
 ;; -----------------------------
 ;; Below is a version of expand-str that takes an optional argument
 ;; tabstop.  It is based upon the last version of expand-str given
@@ -566,8 +568,9 @@
 ;; Use your preferred version of expand and unexpand here.
 
 (doseq [filename *command-line-args*]
-  (doseq [line (line-seq (io/reader filename))]
-    (printf "%s\n" (unexpand line))))
+  (with-open [rdr (io/reader filename)]
+    (doseq [line (line-seq rdr)]
+      (printf "%s\n" (unexpand line)))))
 ;; -----------------------------
 
 ;; 1.8 Expanding and Compressing Tabs

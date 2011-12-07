@@ -68,10 +68,10 @@
   (when (age thing) (print "True "))
   (newline))
 
-;; Toddler: Exists Defined True 
-;; Unborn: Exists Defined True 
-;; Phantasm: Exists 
-;; Relic: 
+;; Toddler: Exists Defined True
+;; Unborn: Exists Defined True
+;; Phantasm: Exists
+;; Relic:
 
 (defn file-sizes [files]
   (reduce (fn [map file]
@@ -110,15 +110,15 @@
 
 ;; Initially:
 ;; Keys: Carrot Banana Lemon Apple
-;; Values: orange yellow yellow red 
+;; Values: orange yellow yellow red
 
 ;; With Banana undef
 ;; Keys: Carrot Banana Lemon Apple
-;; Values: orange (undef) yellow red 
+;; Values: orange (undef) yellow red
 
 ;; With Banana deleted
 ;; Keys: Carrot Lemon Apple
-;; Values: orange yellow red 
+;; Values: orange yellow red
 
 (def food-color (dissoc food-color "Banana" "Apple" "Cabbage"))
 
@@ -159,16 +159,16 @@
 
 ;; There isn't an idiomatic way to reset an iteration through a
 ;; collection in Clojure.
-
 (defn countfrom [file]
-  (let [lines (line-seq (io/reader file))
-        match-sender (fn [line]
-                       (second (re-matches #"^From: (.*)" line)))
-        from (reduce (fn [map line]
-                       (let [sender (match-sender line)
-                             cur (get map sender 0)]
-                         (assoc map sender (inc cur))))
-                     {}
-                     lines)]
-    (doseq [[person n] (sort from)]
-      (printf "%s: %d\n" person n))))
+  (with-open [rdr (io/reader file)]
+    (let [lines (line-seq rdr)
+          match-sender (fn [line]
+                         (second (re-matches #"^From: (.*)" line)))
+          from (reduce (fn [map line]
+                         (let [sender (match-sender line)
+                               cur (get map sender 0)]
+                           (assoc map sender (inc cur))))
+                       {}
+                       lines)]
+      (doseq [[person n] (sort from)]
+        (printf "%s: %d\n" person n)))))

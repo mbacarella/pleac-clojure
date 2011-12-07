@@ -29,9 +29,10 @@
             [clojure.java.io :as io]))
 
 (try
-  (let [bigvector (vec (line-seq (io/reader "mydatafile")))]
-    ;; rest of code to do something with bigvector
-    )
+  (with-open [rdr (io/reader "mydatafile")]
+    (let [bigvector (vec (line-seq rdr))]
+      ;; rest of code to do something with bigvector
+      ))
   (catch java.io.FileNotFoundException e
     (printf "%s\n" e)
     (flush)

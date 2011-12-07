@@ -8,11 +8,11 @@
 ;; The perl version contains an or die "Couldn't open filename: $!"
 ;; after the file open, but this isn't quite as necessary
 ;; in languages with exceptions, such as Clojure.
-;; mbac: do we have to close the object returned by io/reader?
 (defn print-blue-lines-in-file [filename]
-  (doseq [line (line-seq (io/reader filename))]
-    (if (.contains line "blue")
-      (println line))))
+  (with-open [rdr (io/reader filename)]
+    (doseq [line (line-seq rdr)]
+      (if (.contains line "blue")
+        (println line)))))
 
 ;; => (print-blue-lines-in-file "/usr/local/widgets/data")
 ;; blue
