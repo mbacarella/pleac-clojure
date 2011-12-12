@@ -1293,10 +1293,53 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 ;; Here is the more typical example.  Note that unlike the multicmp
 ;; function, with the multicmp macro we do not need to put the compare
 ;; expressions in [ ].
+(def sorted (sort #(multicmp (compare (:name %1) (:name %2))
+                             (compare (:age %2) (:age %1))
+                             (compare (:salary %1) (:salary %2))) employees))
 
-(def sorted (sort #(multicmp (compare (name %1) (name %2))
-                             (compare (age %2) (age %1))
-                             (compare (salary %1) (salary %2))) employees))
+;; Here is a different way to do it, from Alan Malloy.  It achieves
+;; short-circuit evaluation because map and remove are lazy, so they
+;; will not evaluating more of the sequence of keys than is needed in
+;; order to find the first compare result that is non-0.  It also
+;; achieves this because it passes in the functions like name, age,
+;; and salary, instead of the result of comparing the return values of
+;; those functions called on two items.
+(defn multicmp [& keys]
+  (fn [a b]
+    (or (first (remove zero? (map #(compare (% a) (% b))
+                                  keys)))
+        0)))
+
+(def sorted (sort (multicmp :name :age :salary) employees))
+
+;; The only down side is that it is restricted to sorting keys in
+;; ascending order.  If the keys have numeric values, like :age does,
+;; you can negate the ages before comparing them to get a descending
+;; order like so:
+(def sorted (sort (multicmp :name (comp - :age) :salary) employees))
+
+;; But this does not work if you wish to sort a field with a string
+;; value like :name in descending order, because it tries to do (-
+;; "string value").
+
+;; Below is a small modification to the previous multicmp that takes a
+;; vector [- keyfn] in place of a keyfn in order to specify that a key
+;; should be compared in the opposite order.  This function does not
+;; do any extensive error checking, but it allows you to explicitly
+;; specify ascending order by using any symbol besides - in the first
+;; vector element, e.g. [+ keyfn].
+(defn multicmp [& keys]
+  (fn [a b]
+    (or (first (remove zero? (map #(if (vector? %)
+                                     (let [[order keyfn] %]
+                                       (if (= order -)
+                                         (compare (keyfn b) (keyfn a))
+                                         (compare (keyfn a) (keyfn b))))
+                                     (compare (% a) (% b)))
+                                  keys)))
+        0)))
+
+(def sorted (sort (multicmp :name [- :age] :salary) employees))
 ;;-----------------------------
 ;; There may be a POSIX library for Clojure or Java that contains
 ;; getpwent, but for this example we will read /etc/passwd to get the
@@ -1432,7 +1475,78 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 (loop [processes [1 2 3 4 5]]
   (let [[process next-processes] (grab-and-rotate processes)]
     (printf "Handling process %d\n" process)
-    (flush)
+    (flush)    ; printf does not automatically flush its output
     (Thread/sleep 1000)  ; units are millisec
     (recur next-processes)))
+;;-----------------------------
+
+;; @@PLEAC@@_4.17 Randomizing An Array
+;;-----------------------------
+(defn shuffle [coll]
+  (let [java-vec (java.util.Vector. coll)]
+    (java.util.Collections/shuffle java-vec)
+    (seq java-vec)))
+
+(let [shuffled-list (shuffle collection)]
+  )
+
+;; Minor point: While Java's java.util.Vector class is mutable, and we
+;; mutate it in place using shuffle for efficiency, this function as a
+;; whole is purely functional, because it takes an immutable
+;; collection, and returns an immutable collection.  The mutable thing
+;; it uses temporarily is a local variable allocated inside the call,
+;; and becomes unreferenced garbage when the function returns.
+
+;; If you want to implement the Fisher-Yates shuffle yourself, using a
+;; mutable Java array is a straightforward way.  There might not be a
+;; way to do it in linear time without using a mutable array.
+(defn fisher-yates-shuffle [coll]
+  (let [a (into-array Object coll)]
+    (loop [i (dec (alength a))]
+      (if (zero? i)
+        (vec a)
+        (let [j (rand-int (inc i))]
+          (if (not= i j)
+            (let [temp (aget a i)]
+              (aset a i (aget a j))
+              (aset a j temp)))
+          (recur (dec i)))))))
+;;-----------------------------
+(let [permutations (factorial (count array))
+      shuffle (map #(array %) (n2perm (inc (rand-int permutation))
+                                      (count array)))]
+  ;; TBD: Test this
+  )
+;;-----------------------------
+(defn naive-shuffle [coll]               ; don't do this
+  (let [a (into-array Object coll)]
+    (loop [i 0]
+      (if (< i (alength a))
+        (let [j (rand-int (alength a))]  ; pick random element
+          (let [temp (aget a i)]         ; swap 'em
+            (aset a i (aget a j))
+            (aset a j temp))
+          (recur (inc i)))
+        (vec a)))))
+;;-----------------------------
+
+;; @@PLEAC@@_4.18 Program: words
+;;-----------------------------
+awk      cp       ed       login    mount    rmdir    sum
+basename csh      egrep    ls       mt       sed      sync
+cat      date     fgrep    mail     mv       sh       tar
+chgrp    dd       grep     mkdir    ps       sort     touch
+chmod    df       kill     mknod    pwd      stty     vi
+chown    echo     ln       more     rm       su
+;;-----------------------------
+;; ^^INCLUDE^^ include/clojure/ch04/words.clj
+;;-----------------------------
+;;Wrong       Right
+;;-----       -----
+;;1 2 3       1 4 7
+;;4 5 6       2 5 8
+;;7 8 9       3 6 9
+;;-----------------------------
+
+;; @@PLEAC@@_4.19 Program: permute
 ;;-----------------------------
