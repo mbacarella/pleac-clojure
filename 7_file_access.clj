@@ -9,8 +9,8 @@
 ;; after the file open, but this isn't quite as necessary
 ;; in languages with exceptions, such as Clojure.
 (defn print-blue-lines-in-file [filename]
-  (with-open [reader (io/reader filename)]
-    (doseq [line (line-seq reader)]
+  (with-open [rdr (io/reader filename)]
+    (doseq [line (line-seq rdr)]
       (if (.contains line "blue")
         (println line)))))
 
