@@ -421,7 +421,7 @@
 
 ;; replace-first+ is based on Clojure's hidden internal function
 ;; replace-first-by, except that it calls the user-supplied fn f for
-;; calculating the replcement string with the return value of
+;; calculating the replacement string with the return value of
 ;; re-groups+ instead of re-groups, so f can use those additional
 ;; strings to calculate the replacement.
 
