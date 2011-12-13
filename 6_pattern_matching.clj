@@ -190,3 +190,62 @@
 
 ;; @@PLEAC@@_6.1 Copying and Substituting Simultaneously
 ;;-----------------------------
+;; Because Clojure strings are immutable, there is effectively no
+;; choice to edit a string in place, vs. copy it and then edit it.
+;; You use clojure.string/replace-first or clojure.string/replace to
+;; create a new string with replacements made in the original one, and
+;; the original one always remains unchanged.
+
+;; You could write this:
+(let [dst src
+      dst (str/replace-first dst #"this" "that")]
+  ;; ...
+  )
+;;-----------------------------
+;; But you may as well write it this way, unless you prefer the version above:
+(let [dst (str/replace-first src #"this" "that")]
+  ;; ...
+  )
+;;-----------------------------
+;; Note: *file* is the name of the current file in Clojure.  In
+;; executable Clojure file that begin with the line:
+
+;; #! /usr/bin/env clj
+
+;; as described earlier, you can use it the way you would use $0 in
+;; Perl.
+
+;; strip to basename
+(let [progname (str/replace-first *file* #"^.*/" "")]
+  ;; ...
+  )
+
+;; Make All Words Title-Cased
+(defn title-case [word]
+  (str (str/upper-case (subs word 0 1)) (str/lower-case (subs word 1))))
+
+(let [capword (str/replace word #"\w+" title-case)]
+  ;; ...
+  )
+
+;; /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1
+(let [catpage (str/replace-first manpage #"man(?=\d)" "cat")]
+  ;; ...
+  )
+;;-----------------------------
+;; Clojure qw function was defined in Section 4.0
+(let [bindirs (qw "/usr/bin /bin /usr/local/bin")
+      libdirs (map #(str/replace-first % #"bin" "lib") bindirs)]
+  (printf "%s\n" (str/join " " libdirs)))
+;;-----------------------------
+;; There aren't two syntactically close examples like these that do
+;; such different things in Clojure as the original Perl examples.
+;;-----------------------------
+
+;; @@PLEAC@@_6.2 Matching Letters
+;;-----------------------------
+(if (re-find #"^[A-Za-z]+$" var)
+  ;; it is purely alphabetic
+  )
+;;-----------------------------
+;; TBD: Does the JVM implement the use of POSIX locale settings?  How?
