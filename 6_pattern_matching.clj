@@ -15,9 +15,11 @@
 ;; double-quotes and preceding that with the character #, like this:
 (def pat1a #"\d+")
 
-;; This is equivalent to the following, which explicitly calls the
-;; compile() method of java.util.regex.Pattern class:
-(def pat1b (java.util.regex.Pattern/compile "\\d+"))   ; equivalent
+;; That is equivalent to the following two examples.  The first uses
+;; Clojure's re-pattern, and the second explicitly calls the compile()
+;; method of java.util.regex.Pattern class.
+(def pat1b (re-pattern "\\d+"))   ; equivalent
+(def pat1c (java.util.regex.Pattern/compile "\\d+"))
 
 ;; Note that it is a bit nicer to use #"pattern", because you don't
 ;; need to escape \ characters by preceding them with another \.  This
@@ -34,7 +36,7 @@
 
 ;; Compare that to the following mess if you don't use #"pattern".
 ;; Every \ in the pattern must be escaped with its own preceding \.
-(def pat2b (java.util.regex.Pattern/compile "\\\\\\d+\\s+\\S+"))  ; ugh!
+(def pat2b (re-pattern "\\\\\\d+\\s+\\S+"))  ; ugh!
 
 ;; On to Clojure code that match the behavior of the Perl examples.
 
@@ -207,13 +209,13 @@
   ;; ...
   )
 ;;-----------------------------
-;; Note: *file* is the name of the current file in Clojure.  In
-;; executable Clojure file that begin with the line:
+;; Note: *file* is the name of the current file in Clojure.  In an
+;; executable Clojure file that begins with the following line (see
+;; Section 1.6):
 
 ;; #! /usr/bin/env clj
 
-;; as described earlier, you can use it the way you would use $0 in
-;; Perl.
+;; you can use *file* the way you would use $0 in Perl.
 
 ;; strip to basename
 (let [progname (str/replace-first *file* #"^.*/" "")]
@@ -221,10 +223,7 @@
   )
 
 ;; Make All Words Title-Cased
-(defn title-case [word]
-  (str (str/upper-case (subs word 0 1)) (str/lower-case (subs word 1))))
-
-(let [capword (str/replace word #"\w+" title-case)]
+(let [capword (str/replace word #"\w+" str/capitalize)]
   ;; ...
   )
 
@@ -238,8 +237,21 @@
       libdirs (map #(str/replace-first % #"bin" "lib") bindirs)]
   (printf "%s\n" (str/join " " libdirs)))
 ;;-----------------------------
-;; There aren't two syntactically close examples like these that do
-;; such different things in Clojure as the original Perl examples.
+;; This is like the Perl "copy b, and then change a", except it
+;; doesn't actually modify any strings in place like Perl does.
+(let [a (str/replace b #"x" "y")]
+  ;; ...
+  )
+
+;; Here is one way to achieve the behavior of the Perl code, first
+;; finding all matches and counting them, and then doing the
+;; replacements.  If you want a faster way, you probably need to write
+;; your own using Java calls.  See clojure.string/replace-by for a
+;; starting point.
+(let [a (count (re-seq #"x" b))    ; count of pattern occurrences goes in a
+      b (str/replace b #"x" "y")]  ; b's value replaced with new string
+  ;; ...
+  )
 ;;-----------------------------
 
 ;; @@PLEAC@@_6.2 Matching Letters
