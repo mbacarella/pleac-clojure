@@ -985,12 +985,16 @@ diff=9 2 8 6 1
 
 ;; Since the example below uses a splice with negative offset, I'll go
 ;; ahead and give what I think is a full implementation of all cases
-;; of positive, 0, or negaitve arguments to Perl's splice (and also
-;; substr) for offset and length.  This helper function converts Perl
-;; offset and length arguments to Clojure start and end arguments for
-;; subvec (and also subs).  It is a bit of a mess because of all of
-;; the conditions to check.  There is likely code much like this
-;; buried inside of Perl's implementation of subs and splice.
+;; of positive, 0, or negaitve arguments to Perl's splice for offset
+;; and length.  It should also work as a helper for implementing a
+;; Clojure function that works like Perl's substr, based on Clojure's
+;; subs, which is why ps-start-end is written as a separate function.
+
+;; This helper function converts Perl offset and length arguments to
+;; Clojure start and end arguments for subvec (and also subs).  It is
+;; a bit of a mess because of all of the conditions to check.  There
+;; is likely code much like this buried inside of Perl's
+;; implementation of substr and splice.
 
 (defn ps-start-end
   ([n offset]
