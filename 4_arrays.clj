@@ -164,6 +164,9 @@
 
 ;; @@PLEAC@@_4.2 Printing a List with Commas
 ;;-----------------------------
+;; Note that to use concat to append a single item to the end of a
+;; sequence, we have to put that single item into its own 1-item
+;; sequence, using (list item), (vec item), etc.
 (defn commify-series [coll]
   (case (count coll)
         0 ""
@@ -179,6 +182,8 @@
 I have [red yellow green] marbles.
 
 I have red yellow green marbles.
+;;-----------------------------
+;; TBD: Write Clojure version of include/perl/ch04/commify_series
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.3 Changing Array Size
@@ -240,7 +245,6 @@ The index of the last element is 2.
      (loop [people people]
        (if (< (count people) 10001)
          (recur (conj people nil))
-         ;; else
          people)))
 (what-about-that-vector people)
 ;;-----------------------------
@@ -256,7 +260,7 @@ Element #3 is `null'.
 ;;-----------------------------
 
 ;; Clojure is often written in a functional style, meaning that you
-;; calculate output value from input values.  So Clojure's 'for' is
+;; calculate an output value from input values.  So Clojure's 'for' is
 ;; actually a way to take one or more input sequences and produce an
 ;; output sequence, and in fact this is done in a lazy fashion,
 ;; meaning that no actual computation occurs unless some other code
@@ -309,11 +313,29 @@ i=3
 i=4
 1 2 3 4 5)
 
-;; If you want to force the iteration to occur when it is evaluated,
-;; use doseq instead.  It does not return any useful value (only nil),
-;; and is intended to be used when the body contains side effects.
-;; Here the (inc i) is superfluous, since it simply returns a value
-;; that is ignored by the rest of the expression around it.
+;; If you want to force the iteration of 'for' to occur when it is
+;; evaluated, you can wrap it, or any other expression that returns a
+;; lazy result, in a call to doall, which forces the entire sequence
+;; to be evaluated.
+user=> (def a1 (doall (for [i (range 0 5)] (do (printf "i=%d\n" i) (inc i)))))
+i=0
+i=1
+i=2
+i=3
+i=4
+#'user/a1
+
+;; Since the for has already been evaluated, it is not evaluated again
+;; when we ask to show the value of a1 this time.
+user=> a1
+(1 2 3 4 5)
+
+;; Another way to iterate similar to for, and force the iteration to
+;; occur when the expression is evaluated, is to use doseq.  It does
+;; not return any useful value (only nil), and is intended to be used
+;; when the body contains side effects.  Here the (inc i) is
+;; superfluous, since it simply returns a value that is ignored by the
+;; rest of the expression around it.
 user=> (def a1 (doseq [i (range 0 5)] (printf "i=%d\n" i) (inc i)))
 i=0
 i=1
@@ -325,6 +347,7 @@ i=4
 ;; As mentioned above, doseq always returns nil.
 user=> a1
 nil
+
 ;;-----------------------------
 (doseq [user bad-users]
   (comlain user))
@@ -359,7 +382,8 @@ nil
 ;; "my", i.e. their scope is local to the body of the loop, and any
 ;; value the symbol had outside the loop is not visible inside, and
 ;; any change made inside has no affect on the symbol's value outside
-;; the loop.
+;; the loop (if the symbol had a value before the loop was
+;; encountered).
 (doseq [item array]
   (printf "i = %s\n" item))
 ;;-----------------------------
