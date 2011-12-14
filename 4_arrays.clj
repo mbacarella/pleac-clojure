@@ -183,7 +183,7 @@ I have [red yellow green] marbles.
 
 I have red yellow green marbles.
 ;;-----------------------------
-;; TBD: Write Clojure version of include/perl/ch04/commify_series
+;; @@INCLUDE@@ include/clojure/ch04/commify_series.clj
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.3 Changing Array Size
@@ -1198,8 +1198,17 @@ Found matching item null
     (printf "Found matching item %s\n" (array match-idx))
     (printf "No matching item found\n")))
 ;;-----------------------------
-;; TBD: Read more about what this example is intended to do.  Should
-;; Clojure example create a new class?  Seems like overkill.
+;; Assume that for each employee in employees, (category employee) and
+;; (name employee) will return what $employee->category() and
+;; $employee->name() do in the Perl example.
+
+;; Note that the original Perl example will never assign a value to
+;; $highest_engineer if no employee has the category "engineer", and
+;; the code below will assign a value of nil to highest-engineer in
+;; that case.  Both examples should really check for that case, unless
+;; there is some reason you believe that it can never happen.
+(let [highest-engineer (first (filter #(= (category %) "engineer") employees))]
+  (printf "Highest paid engineer is: %s\n" (name highest-engineer)))
 ;;-----------------------------
 ;; Clojure loops like loop, dotimes, doseq all bind symbols locally,
 ;; i.e. within their body, only.  They do not have any accessible
@@ -1701,7 +1710,7 @@ chgrp    dd       grep     mkdir    ps       sort     touch
 chmod    df       kill     mknod    pwd      stty     vi
 chown    echo     ln       more     rm       su
 ;;-----------------------------
-;; ^^INCLUDE^^ include/clojure/ch04/words.clj
+;; @@INCLUDE@@ include/clojure/ch04/words.clj
 ;;-----------------------------
 ;;Wrong       Right
 ;;-----       -----
@@ -1721,3 +1730,5 @@ chown    echo     ln       more     rm       su
 
 (print (factorial 500))
 1220136... (1135 digits total)
+
+;; TBD: Finish this section.
