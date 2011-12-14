@@ -17,15 +17,47 @@
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.1 Specifying a List in Your Program
+;;-----------------------------
 (def a ["quick" "brown" "fox"])
+;;-----------------------------
+;; almost-qw is close to Perl's qw, but it treats leading whitespace
+;; differently.
+(defn almost-qw [s]
+  (str/split s #"\s+"))
+
+(almost-qw "  Leading whitespace behaves differently than Perl's qw  ")
+;; ["" "Leading" "whitespace" "behaves" "differently" "than" "Perl's" "qw"]
+
+;; The function perl-split is intended to handle this special case of
+;; a pattern of " " similar to how Perl does.
+(defn perl-split
+  "Split string as Perl's split would, including how it has a special
+  case for the pattern ' ' that ignores leading whitespace in the
+  string to be split."
+  ([s pat-or-space]
+     (if (= pat-or-space " ")
+       ;; Eliminate leading whitespace before using Clojure's split
+       (str/split (str/replace-first s #"^\s+" "") #"\s+")
+       (str/split s pat-or-space)))
+  ([s pat-or-space limit]
+     (if (= pat-or-space " ")
+       (str/split (str/replace-first s #"^\s+" "") #"\s+" limit)
+       (str/split s pat-or-space limit))))
+
 (defn qw
   "Split string on whitespace. Returns a seq."
-  [s] (seq (.split s "\\s")))
+  [s] (perl-split s " "))
+
 (def a2 (qw "Why are you teasing me?"))
-(def lines
-  (.replaceAll "    The boy stood on the burning deck,
-    It was as hot as glass."
-               "\\ +" ""))
+;;-----------------------------
+;; The 'map second' part is because each element returned by the
+;; re-seq is a vector with 2 elements: the first is the string that
+;; matched the entire pattern, the second is the string that matched
+;; the parenthesized group (.+).
+(def lines (map second (re-seq #"(?m)\s*(.+)"
+"    The boy stood on the burning deck,
+    It was as hot as glass.
+")))
 ;;-----------------------------
 (ns bigvector
   (:require [clojure.string :as str]
@@ -40,6 +72,93 @@
     (printf "%s\n" e)
     (flush)
     (System/exit 1)))
+;;-----------------------------
+;; There is no distinction in Clojure similar to Perl's single-quoting
+;; and double-quoting of strings, because there is no string
+;; interpolation in Clojure.
+(def banner "The Mines of Moria")
+;;-----------------------------
+;; Probably the most similar thing in Clojure to Perl's string
+;; interpolation is using format, which is like sprintf in Perl.
+(def name "Gandalf")
+(def banner (format "Speak, %s, and enter!" name))
+;;-----------------------------
+;; Note that Clojure's clojure.java.shell/sh takes as arguments a
+;; separate string for each 'word' on the command line, not a single
+;; string that is then parsed to separate it into words.
+(require '[clojure.java.shell :as shell])
+(def his-host "www.perl.com")
+(def host-info (:out (shell/sh "nslookup" his-host)))
+
+;; I haven't found a simpler way to get the JVM's process ID.  Here
+;; are two web pages describing several possibilities:
+;; http://blog.igorminar.com/2007/03/how-java-application-can-discover-its.html
+;; http://stackoverflow.com/questions/35842/process-id-in-java
+(defn getpid []
+  (let [pid-at-host-str
+        (. (java.lang.management.ManagementFactory/getRuntimeMXBean) getName)]
+    (if-let [match (re-find #"^(\d+)@" pid-at-host-str)]
+      (read-string (second match)))))
+
+(def clojure-info (:out (shell/sh "ps" (str (getpid)))))
+;; If you want something equivalent to the following in Perl:
+
+;; $shell_info = qx'ps $$';        # that's the new shell's $$
+
+;; then the following is a good first try, but it does not work as
+;; above, because it does not start a shell process that can interpret
+;; and replace the "$$".  Instead it directly starts the process ps
+;; without invoking a shell process first, so the "ps" command sees
+;; the first argument as the string "$$", which it most likely prints
+;; an error message about.
+(def shell-info (:out (shell/sh "ps" "$$")))
+
+;; This is closer, but it hard-codes the use of bash as the shell.
+;; Note that in this case bash expects the entire command to parse as
+;; a single string.  That is why "ps $$" is all one string.
+(def shell-info (:out (shell/sh "bash" "-c" "ps $$")))
+
+;; If you do this frequently, and you want to use the value of the
+;; SHELL environment variable to decide which shell to run, defaulting
+;; to bash only if SHELL is not defined, a function like this is
+;; recommended:
+(defn shell-run [cmd]
+  (let [shell (or (get (System/getenv) "SHELL") "bash")]
+    (:out (shell/sh shell "-c" cmd))))
+
+(def shell-info (shell-run "ps $$"))
+
+;; Note that at least on my Mac, both the Perl and Clojure versions
+;; above result in a string the one below, showing the ps command
+;; instead of bash.  This is because the bash process is doing an exec
+;; call to replace itself with the ps process, having the same process
+;; ID.
+
+;;  PID   TT  STAT      TIME COMMAND
+;; 3606 s002  R+     0:00.01 ps 3606
+;;-----------------------------
+(def banner ["Costs" "only" "$4.95"])
+(def banner (qw "Costs only $4.95"))
+;; Note the use of perl-split here instead of Clojure's str/split.
+;; See notes near definition of perl-split in Section 4.1 for the
+;; reason.
+(def banner (perl-split "Costs only $4.95" " "))
+;;-----------------------------
+;; Clojure's strings can be multiline, but they can only be delimited
+;; with "double quote characters", not a large variety of characters
+;; as Perl allows.  You must escape double-quote characters that you
+;; want to be included as part of the string.
+(def brax   (qw " ( ) < > { } [ ] "))
+(def rings  (qw "Nenya Narya Vilya"))
+(def tags   (qw "LI TABLE TR TD A IMG H1 P"))
+(def sample (qw "The vertical bar (|) looks and behaves like a pipe."))
+;;-----------------------------
+;; As mentioned above, Clojure cannot use anything except double-quote
+;; characters to delimit strings.
+(def banner (qw "The vertical bar (|) looks and behaves like a pipe."))
+;;-----------------------------
+(def ships (qw "Niña Pinta Santa María"))   ; WRONG
+(def ships ["Niña" "Pinta" "Santa María"])  ; right
 ;;-----------------------------
 
 
@@ -1550,3 +1669,12 @@ chown    echo     ln       more     rm       su
 
 ;; @@PLEAC@@_4.19 Program: permute
 ;;-----------------------------
+;; If you use 1 instead of 1N below, Clojure 1.3 will use 64-bit Java
+;; longs for arithmetic, and the result will overflow for n >= 21.
+;; The N in 1N signifies that the constant 1 is of type
+;; clojure.lang.BigInt, which can grow up to the available memory.
+(defn factorial [n]
+  (apply * (range 1N (inc n))))
+
+(print (factorial 500))
+1220136... (1135 digits total)
