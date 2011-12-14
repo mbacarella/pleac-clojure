@@ -781,10 +781,25 @@ a e
 (let [hash (assoc hash "key1" 1 "key2" 2)]
   ;; ...
   )
+;; Another way:
+(let [hash (merge hash {"key1" 1, "key2" 2})]
+  ;; ...
+  )
 ;;-----------------------------
-;; TBD: What does this Perl code do?
+;; The behavior of this Perl code:
+
+;; @seen{@B} = ();
+
+;; is to add all of the values in array @B as keys in the map %seen,
+;; but with "no value", i.e. they keys are associated with the value
+;; undef.
+
+;; This is pretty much equivalent in Clojure, with the usual
+;; distinction that Clojure is returning a new map, not modifying the
+;; original one in place as Perl does.
+(def seen (merge seen (zipmap B (repeat nil))))
 ;;-----------------------------
-;; TBD: What does this Perl code do?
+(def seen (merge seen (zipmap B (repeat 1))))
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.8 Computing Union, Intersection, or Difference of Unique Lists
