@@ -98,13 +98,79 @@
 (def string (subs string 0 (- (count string) 10)))
 ;; his wasn'
 ;; -----------------------------
+;; test whether a pattern matches in a substring
+(if (re-find #"pattern" (subs string 0 (- (count string) 10)))
+  (printf "Pattern matches in last 10 characters.\n"))
+
+;; Substitute "at" for "is", restricted to first five characters.
+;; Clojure doesn't have mutable strings, so it doesn't have mutable
+;; substrings, either.  We build up a new string from the ones we
+;; have.
+(let [string (str (str/replace (subs string 0 5) #"is" "at")
+                  (subs string 5))]
+  ;; ...
+  )
+;; -----------------------------
+;; exchange the first and last letters in a string
+(let [a "make a hat"
+      len-1 (dec (count a))
+      a (str (subs a len-1)
+             (subs a 1 len-1)
+             (subs a 0 1))]
+  (printf "%s" a))
+;; take a ham
+;; -----------------------------
+;; TBD: extract column like Perl's unpack does
+;; -----------------------------
+;; We'll show how to implement cut2fmt in Clojure, but since the
+;; return value in the original code is intended as an input string to
+;; unpack, which Clojure does not have built in, it would be better to
+;; write different code for the intended purpose of splitting up lines
+;; at particular column numbers.
+(defn cut2fmt [& positions]
+  (let [positions-with-1-first (cons 1 (seq positions))
+        pairs (partition 2 1 positions-with-1-first)
+        deltas (map (fn [[lastpos place]] (- place lastpos)) pairs)
+        template-parts (map #(format "A%d " %) deltas)]
+    (str (apply str template-parts) "A*")))
+
+(let [fmt (cut2fmt 8 14 20 26 30)]
+  (printf "%s\n" fmt))
+;; A7 A6 A6 A6 A4 A*
+
+;; Here is variation on cut2fmt, using ->> to shorten it.  Each of the
+;; let symbols above becomes the last argument to the next expression.
+;; Sometimes you want it shorter like this, but sometimes the
+;; intermediate names are useful for understanding how the code works.
+(defn cut2fmt [& positions]
+  (let [template-parts (->> (cons 1 (seq positions))
+                            (partition 2 1)
+                            (map (fn [[lastpos place]] (- place lastpos)))
+                            (map #(format "A%d " %)))]
+    (str (apply str template-parts) "A*")))
+
+;; Here is a Clojure function to split a string at the specified list
+;; of column numbers.  It does not implement the full functionality of
+;; Perl's unpack.
+(defn split-at-cols [& positions]
+  (let [positions-0-first (cons 0 (map dec positions))
+        last-pos (last positions-0-first)
+        pairs (partition 2 1 positions-0-first)
+        subs-args (concat pairs (list (list last-pos)))]
+    (fn [s]
+      (map #(apply subs s %) subs-args))))
+
+(def s "12345678901234567890123456789012345678901234567890")
+(def splitter (split-at-cols 8 14 20 26 30))
+(splitter s)
+;; ("1234567" "890123" "456789" "012345" "6789" "012345678901234567890")
+;; -----------------------------
 
 ;; @@PLEAC@@_1.2 Establishing a Default Value
-
+;; -----------------------------
 ;; While Perl treats undef, 0, and "" as false, Clojure treats the
 ;; values false and nil as false, but 0 and "" as true.
 
-;; -----------------------------
 ;; use b if b is true, else c
 ;; Note that if b has never been defined or had a value bound to it,
 ;; then unlike Perl this will give an error that the value is
@@ -113,7 +179,7 @@
 
 ;; re-define x with the value y, unless x is already true
 (def x (when-not x y))
-
+;; -----------------------------
 ;; use b if b is defined, otherwise c
 ;; This correctly tests whether b is bound to a value or not, but
 ;; if it is not, then it throws an exception because of the last
@@ -130,17 +196,54 @@
   (let [a (if (find (ns-interns *ns*) 'b) (eval 'b) c)]
     (printf "a=%s" a)))
 ;; a=c-value
-
 ;; -----------------------------
 (def foo (or bar "DEFAULT VALUE"))
-
+;; -----------------------------
 ;; Clojure data structures are immutable.  The code below does not
 ;; change the value of *command-line-args*, whereas Perl
 ;; 'shift(@ARGV)' does modify @ARGV by removing its first element.
-(def dir
-  (if (>= (count *command-line-args*) 1)
-    (nth *command-line-args* 0)
-    "/tmp"))
+(def dir (or (first *command-line-args*) "/tmp"))
+;; -----------------------------
+;; The previous Clojure example is quite close to the Perl example's
+;; behavior here.  One way in which the Clojure example behaves better
+;; is that even if the first command line argument is the string "0",
+;; that is treated as logically true by Clojure, since it is neither
+;; nil nor false, so dir will become "0" as intended if that is the
+;; first command line argument, not "/tmp".
+;; -----------------------------
+;; This Perl version works the same as the previous example, except
+;; the Perl version modifies @ARGV, but the Clojure version leaves
+;; *command-line-args* unmodified.
+;; -----------------------------
+;; The Clojure code above is completely identical to the behavior of
+;; this Perl code: neither modifies the list of command line args, and
+;; both use "0" if that is the value of the first arg.
+;; -----------------------------
+;; See Section 4.6 for more explanation of update-in and fnil.
+(let [count (update-in count [(or shell "/bin/sh")] (fnil inc 0))]
+  ;; ...
+  )
+;; -----------------------------
+;; TBD: What would Clojure version of Perl's getlogin() and getpwuid()
+;; be?  For $< to get the real uid of this process?
+(let [user (or (get (System/getenv) "USER")
+               (get (System/getenv) "LOGNAME")
+               "Unknown uid number")]
+  ;; ...
+  )
+;; -----------------------------
+(let [starting-point (or starting-point "Greenwich")]
+  ;; ...
+  )
+;; -----------------------------
+(let [a (if (or (nil? a) (== 0 (count a))) b a)]  ; assign if a was nil or empty
+  ;; ...
+  )
+(let [a (if (or (nil? b) (== 0 (count b))) c b)]  ; assign b if nonempty, else c
+  ;; ...
+  )
+;; -----------------------------
+
 
 ;; @@PLEAC@@_1.3 Exchanging Values Without Using Temporary Variables
 ;; -----------------------------
@@ -268,8 +371,13 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
-(doseq [filename *command-line-args*]
-  (with-open [rdr (io/reader filename)]
+;; Note: (or *command-line-args* [*in*]) returns *command-line-args*
+;; if one or more command line args were specified, otherwise it
+;; returns a vector containing one element, the value of *in*.  This
+;; makes the following code reasonably close to the behavior of Perl's
+;; "while (<>) ...".
+(doseq [file (or *command-line-args* [*in*])]
+  (with-open [rdr (io/reader file)]
     (doseq [line (line-seq rdr)]
       (when (and (= line (str/reverse line))
                  (>= (count line) 5))
@@ -309,6 +417,25 @@
 ;; for security reasons):
 ;;
 ;; % print-palindromes.clj /usr/share/dict/words
+
+
+;; If you often want to write Clojure code that operates like Perl's
+;; "while (<>) ...", or some other control structure that doesn't
+;; already exist in Clojure, you can make a new one with defmacro.
+;; For example, here is a macro while-<> and an example of its use
+;; that works like the above.
+(defmacro while-<>
+  [[file line] & body]
+  `(doseq [~file (or *command-line-args* [*in*])]
+     (with-open [rdr# (clojure.java.io/reader ~file)]
+       (doseq [~line (line-seq rdr#)]
+         ~@body))))
+
+(while-<> [file line]
+  (when (and (= line (str/reverse line))
+             (>= (count line) 5))
+    (printf "%s\n" line)))
+
 
 ;; @@PLEAC@@_1.7 Reversing a String by Word or by Character
 
@@ -507,12 +634,12 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
-;; Use your preferred version of expand here.
+;; Use your preferred version of expand here.  See Section 1.6 for
+;; definition of while-<>.
 
-(doseq [filename *command-line-args*]
-  (with-open [rdr (io/reader filename)]
-    (doseq [line (line-seq rdr)]
-      (printf "%s\n" (expand line)))))
+(while-<> [file line]
+  (printf "%s\n" (expand line)))
+          
 ;; -----------------------------
 ;; Below is a version of expand-str that takes an optional argument
 ;; tabstop.  It is based upon the last version of expand-str given
@@ -566,10 +693,8 @@
 
 ;; Use your preferred version of expand and unexpand here.
 
-(doseq [filename *command-line-args*]
-  (with-open [rdr (io/reader filename)]
-    (doseq [line (line-seq rdr)]
-      (printf "%s\n" (unexpand line)))))
+(while-<> [file line]
+  (printf "%s\n" (unexpand line)))
 ;; -----------------------------
 
 ;; 1.8 Expanding and Compressing Tabs
