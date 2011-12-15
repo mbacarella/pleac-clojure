@@ -393,34 +393,58 @@ sample
 
 (def revbytes (str/reverse string))
 ;; -----------------------------
-;; TBD: Verify whether the split call below matches the behavior of
-;; Perl split with a " " as first arg.  Should we use the regular
-;; expression #"\s+" to match Perl behavior more closely?  Does that
-;; even match exactly?  What about white space before first word or
-;; after last word in the string to be split?
-(str/join " " (reverse (str/split str #"\s+")))
+;; Clojure's (str/split str #"\s+") is almost the same behavior as
+;; Perl's split(" ", $str), except if $str has leading whitespace, in
+;; which case the former will return a list where the first string is
+;; empty, but the latter will not.  perl-split-on-space handles this
+;; the same as Perl does, even for that case, by first removing any
+;; leading whitespace before doing the split.
+(defn perl-split-on-space [s]
+  (str/split (str/replace-first s #"^\s+" "") #"\s+"))
+
+(str/join " " (reverse (perl-split-on-space str)))
 ;; -----------------------------
 (def gnirts (str/reverse string))    ; str/reverse reverses letters in string
 
 (def sdrow (reverse words))          ; reverse reverses elements in sequence
 
-;; TBD: What corresponds to following Perl?
-;; $confused = reverse(@words);        # reverse letters in join("", @words)
+(def confused (str/reverse (str/join "" words)))
 ;; -----------------------------
 ;; reverse word order
 (def string "Yoda said, \"can you see this?\"")
-
-(def allwords (str/split string #"\s+"))
-
+(def allwords (perl-split-on-space string))
 (def revwords (str/join " " (reverse allwords)))
-
 (printf "%s\n" revwords)
+this?" see you "can said, Yoda
 ;; -----------------------------
-;; There is no shortcut in Clojure like in Perl for the last arg of
-;; str/split equal to " " meaning the same thing as matching on the
-;; regular expression #"\s+"
+(def revwords (str/join " " (reverse (perl-split-on-space str))))
 ;; -----------------------------
-(def revwords (str/join " " (reverse (str/split str #"\s+"))))
+;; Perl's split, when given a regex containing a parenthesized group,
+;; returns strings in the resulting list that match that group, but
+;; Java and Clojure's split do not do this.  We can write something
+;; similar as follows.
+
+;; This function requires that the regex is of the form:
+;; #"^(.*?)(your desired split pattern here)(.*)$"
+(defn split-with-capture [s re]
+  (loop [result []
+         s s]
+    (if (= s "")
+      result
+      (if-let [[all pre middle post] (re-find re s)]
+        (if (= pre "")    ; Ignore a 0-length match of ^(.*?)
+          (recur (conj result middle) post)
+          (recur (conj result pre middle) post))
+        ;; else we are done, and s is the last string to be returned
+        (conj result s)))))
+
+(def revwords (str/join "" (reverse (split-with-capture str
+                                      #"^(.*?)(\s+)(.*)$"))))
+
+;; We could write a version that did not require the ^(.*?) and (.*)$
+;; in the regex if we used re-groups+ below, and a modified re-find+,
+;; that always returned the part of the string before and after a
+;; match.
 ;; -----------------------------
 (def word "reviver")
 (def is-palindrome (= word (str/reverse word)))
@@ -497,10 +521,10 @@ sample
   (when (and (= line (str/reverse line))
              (>= (count line) 5))
     (printf "%s\n" line)))
+;; -----------------------------
 
 
-;; @@PLEAC@@_1.7 Reversing a String by Word or by Character
-
+;; @@PLEAC@@_1.7 Expanding and Compressing Tabs
 ;; -----------------------------
 ;; Clojure's built-in regexp matching functions have something like
 ;; Perl's $& that returns everything that a regexp matched within a
@@ -538,9 +562,9 @@ sample
         s))))
 
 ;; Performance note: The code above will recompile the regexp #"\t+"
-;; each time through the loop.  If you want it to be compiled only
-;; once, wrap the function body in a (let [pat #"\t+"] ...) and use
-;; pat in place of #"\t+" in the body.
+;; each time through the loop (TBD: true?).  If you want it to be
+;; compiled only once, wrap the function body in a (let [pat #"\t+"]
+;; ...) and use pat in place of #"\t+" in the body.
 
 ;; Another way is to use the regexp "^([^\t]*)(\t+)" instead of simply
 ;; "\t+".  The ([^\t]*) will explicitly match everything before the
@@ -759,25 +783,32 @@ sample
   (printf "%s\n" (unexpand line)))
 ;; -----------------------------
 
-;; 1.8 Expanding and Compressing Tabs
+;; @@PLEAC@@_1.8 Expanding Variables in User Input
+;; -----------------------------
+;; -----------------------------
 
-;; 1.9 Expanding Variables in User Input
-
-;; @PLEAC@@_1.10 Controlling Case
+;; @@PLEAC@@_1.9 Controlling Case
 (.toUpperCase "foo") ;; -> "FOO"
-(.toLowerCase "FOO") ;; -> "foo"
+(.toLowerCase "FOO") ;; -;; -----------------------------
+> "foo"
 
-;; 1.11 Interpolating Functions and Expressions Within Strings
+;; 1.10 Interpolating Functions and Expressions Within Strings
 
-;; 1.12 Indenting Here Documents
+;; 1.11 Indenting Here Documents
 
-;; 1.13 Reformatting Paragraphs
+;; 1.12 Reformatting Paragraphs
 
-;; 1.14 Escaping Characters
+;; 1.13 Escaping Characters
 
-;; 1.15 Trimming Blanks from the Ends of a String
+;; 1.14 Trimming Blanks from the Ends of a String
 
 (.trim string)
 ;; (.trim "  foo  ") => "foo"
 
-;; 1.16 Parsing Comma-Separated Data
+;; 1.15 Parsing Comma-Separated Data
+
+;; 1.16 Soundex Matching
+
+;; 1.17 Program: fixstyle
+
+;; 1.18 Program: psgrep
