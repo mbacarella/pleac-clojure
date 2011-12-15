@@ -288,8 +288,11 @@
 ;; @@PLEAC@@_1.4 Converting Between ASCII Characters and Values
 
 ;; -----------------------------
+;; Clojure has a type for an individual character, unlike Perl which
+;; has strings of characters, but not a separate type for an
+;; individual character.
 (def num (int \a))     ; => ASCII code 97
-(def char (char 97))   ; => \a
+(def c (char 97))      ; => \a
 ;; -----------------------------
 
 (defn print-ascii-code-for-char [c]
@@ -297,6 +300,28 @@
 
 ;; (print-ascii-code-for-char \a)
 ;; Number 97 is the ASCII character a
+;; -----------------------------
+(def ascii (map int string))
+(def string (apply str (map char ascii)))
+;; -----------------------------
+(def ascii-value (int \e))  ; now 101
+(def character (char 101))  ; now character \e
+;; -----------------------------
+(def ascii-character-numbers (map int "sample"))
+(printf "%s\n" (str/join " " ascii-character-numbers))
+115 97 109 112 108 101
+
+(def word (apply str (map char ascii-character-numbers)))
+(def word (apply str (map char [ 115 97 109 112 108 101 ])))
+(printf "%s\n" word)
+sample
+;; -----------------------------
+(let [hal "HAL"
+      ascii (map int hal)
+      ascii (map inc ascii)  ; add one to each ASCII value
+      ibm (apply str (map char ascii))]
+  (printf "%s\n" ibm))       ; prints "IBM"
+;; -----------------------------
 
 ;; @@PLEAC@@_1.5 Processing a String One Character at a Time
 ;; Strings in Clojure can be treated as sequences, so the usual
