@@ -261,3 +261,20 @@
   )
 ;;-----------------------------
 ;; TBD: Does the JVM implement the use of POSIX locale settings?  How?
+
+;; There is the java.util.Locale/setDefault method:
+;; http://docs.oracle.com/javase/1.5.0/docs/api/java/util/Locale.html
+
+;; TBD: However, does setting the Locale in that way affect the \W
+;; character class in Java regex matching?  Does it affect any of the
+;; POSIX \p character classes?
+;;-----------------------------
+
+;; @@PLEAC@@_6.3 Matching Words
+;;-----------------------------
+;; #"\S+"          ; as many non-whitespace characters as possible
+;; #"[A-Za-z'-]+"  ; as many letters, apostrophes, and hyphens
+;;-----------------------------
+;; #"\b([A-Za-z]+)\b"    ; usually best
+;; #"\s([A-Za-z]+)\s"    ; fails at ends or w/ punctuation
+;;-----------------------------
