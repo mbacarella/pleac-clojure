@@ -324,6 +324,28 @@ sample
 ;; -----------------------------
 
 ;; @@PLEAC@@_1.5 Processing a String One Character at a Time
+;; -----------------------------
+;; I'm not sure why, but this:
+(def array (str/split string #""))
+;; does not work the same as the Perl split(//, $string).  The Clojure
+;; version returns an empty string as the first item in the result,
+;; whereas the Perl does not.
+
+;; This will split up a string into one string per 16-bit Java
+;; character.  Note that it does not try to keep together UTF-16
+;; surrogate pairs as a single character.
+(def sequence (map str (seq string)))
+
+;; As mentioned in previous section, this will get their ASCII values,
+;; if only ASCII values are in the string, or in general get 16-bit
+;; code points, treating surrogate pairs as two consecutive 16-bit
+;; values.
+(def sequence (map int string))
+
+;; TBD: Consider writing a version that works with UTF-16 surrogate
+;; pairs in the string, converting them into a single string, or a
+;; single integer, when they are found.
+;; -----------------------------
 ;; Strings in Clojure can be treated as sequences, so the usual
 ;; map, reduce, doseq functions apply.
 (defn one-char-at-a-time [f string] (doseq [b string] (f b)))
@@ -335,17 +357,32 @@ sample
 ;; do something with: b
 ;; do something with: c
 ;; ----------------------------
-
 (defn print-uniq-chars [string]
   (printf "unique chars are: %s\n"
-          (sort (set string))))
+          (apply str (sort (set string)))))
 ;; => (print-uniq-chars "an apple a day")
-;; unique chars are: (\space \a \d \e \l \n \p \y)
+;; unique chars are:  adelnpy
+;; -----------------------------
+;; (re-seq #"." string) returns a sequence of length 1 strings, as
+;; opposed to (set string) above, which returns a sequence of
+;; characters, which are different objects than length 1 strings in
+;; Java and Clojure.
+(defn print-uniq-chars [string]
+  (printf "unique chars are: %s\n"
+          (apply str (sort (set (re-seq #"." string))))))
+;; => (print-uniq-chars "an apple a day")
+;; unique chars are:  adelnpy
 ;; -----------------------------
 (defn print-ascii-value-sum [string]
   (printf "sum is %s\n" (apply + (map int string))))
 ;; => (print-ascii-value-sum "an apple a day")
 ;; sum is 1248
+;; -----------------------------
+;; TBD: Clojure version of Perl's $sum = unpack("%32C*", $string); ?
+;; -----------------------------
+;; TBD: Clojure version of include/perl/ch01/sum
+;; -----------------------------
+;; @@INCLUDE@@ include/clojure/ch01/slowcat.clj
 ;; -----------------------------
 
 ;; @@PLEAC@@_1.6 Reversing a String by Word or Character
