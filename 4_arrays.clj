@@ -28,32 +28,22 @@
 (almost-qw "  Leading whitespace behaves differently than Perl's qw  ")
 ;; ["" "Leading" "whitespace" "behaves" "differently" "than" "Perl's" "qw"]
 
-;; The function perl-split is intended to handle this special case of
-;; a pattern of " " similar to how Perl does.
-(defn perl-split
-  "Split string as Perl's split would, including how it has a special
-  case for the pattern ' ' that ignores leading whitespace in the
-  string to be split."
-  ([s pat-or-space]
-     (if (= pat-or-space " ")
-       ;; Eliminate leading whitespace before using Clojure's split
-       (str/split (str/replace-first s #"^\s+" "") #"\s+")
-       (str/split s pat-or-space)))
-  ([s pat-or-space limit]
-     (if (= pat-or-space " ")
-       (str/split (str/replace-first s #"^\s+" "") #"\s+" limit)
-       (str/split s pat-or-space limit))))
+;; perl-split-on-space was introduced in Section 1.6
+(defn perl-split-on-space [s]
+  (str/split (str/replace-first s #"^\s+" "") #"\s+"))
 
 (defn qw
   "Split string on whitespace. Returns a seq."
-  [s] (perl-split s " "))
+  [s] (perl-split-on-space s))
 
 (def a2 (qw "Why are you teasing me?"))
 ;;-----------------------------
 ;; The 'map second' part is because each element returned by the
 ;; re-seq is a vector with 2 elements: the first is the string that
 ;; matched the entire pattern, the second is the string that matched
-;; the parenthesized group (.+).
+;; the parenthesized group (.+).  (?m) at the beginning of the pattern
+;; allows ^ to match the beginning of a line inside the string, just
+;; after a newline, like Perl's /m at the end of a pattern.
 (def lines (map second (re-seq #"(?m)\s*(.+)"
 "    The boy stood on the burning deck,
     It was as hot as glass.
@@ -139,10 +129,9 @@
 ;;-----------------------------
 (def banner ["Costs" "only" "$4.95"])
 (def banner (qw "Costs only $4.95"))
-;; Note the use of perl-split here instead of Clojure's str/split.
-;; See notes near definition of perl-split in Section 4.1 for the
-;; reason.
-(def banner (perl-split "Costs only $4.95" " "))
+;; Note the use of perl-split-on-space here instead of Clojure's
+;; str/split.
+(def banner (perl-split-on-space "Costs only $4.95"))
 ;;-----------------------------
 ;; Clojure's strings can be multiline, but they can only be delimited
 ;; with "double quote characters", not a large variety of characters
@@ -940,10 +929,10 @@ diff=9 2 8 6 1
                         isect []
                         diff []]
         (doseq [e (keys count)]
-          (var-set union (conj (var-get union) e))
+          (var-set union (conj @union e))
           (let [target (if (== (count e) 2) isect diff)]
-            (var-set target (conj (var-get target) e))))
-        [(var-get union) (var-get isect) (var-get diff)])]
+            (var-set target (conj @target e))))
+        [@union @isect @diff])]
   (printf "union=%s\n" (str/join " " union))
   (printf "isect=%s\n" (str/join " " isect))
   (printf "diff=%s\n" (str/join " " diff)))
@@ -1275,7 +1264,7 @@ Found matching item null
 ;; Clojure does not auto-convert between numbers and strings depending
 ;; upon how they are used.  There is no built-in comparison function
 ;; like Perl's <=> operator that takes two strings, tries to convert
-;; them to numbers, and compared them numerically.  If you have
+;; them to numbers, and compares them numerically.  If you have
 ;; strings containing numbers in Clojure, and want to compare them
 ;; numerically, you must convert the strings to numbers explicitly.
 ;; If they are integers that fit into a Java long, Java's
