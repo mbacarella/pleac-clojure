@@ -788,9 +788,46 @@ this?" see you "can said, Yoda
 ;; -----------------------------
 
 ;; @@PLEAC@@_1.9 Controlling Case
-(.toUpperCase "foo") ;; -> "FOO"
-(.toLowerCase "FOO") ;; -;; -----------------------------
-> "foo"
+;; -----------------------------
+(use '[clojure.string :only (upper-case lower-case capitalize replace)])
+
+(def big (upper-case little))     ; "bo peep" -> "BO PEEP"
+(def little (lower-case big))     ; "JOHN"    -> "john"
+;; I know of no way in Clojure to change case similar to Perl's \U and
+;; \L inside of interpolated strings.
+;; -----------------------------
+;; Clojure has no ucfirst or lcfirst, but we can write them easily
+;; enough if we want them.  This lcfirst is patterned after Clojure's
+;; clojure.string/capitalize.  ucfirst is nearly identical.
+(defn lcfirst [^CharSequence s]
+  (let [s (.toString s)]
+    (if (< (count s) 2)
+      (lower-case s)
+      (str (lower-case (subs s 0 1)) (subs s 1)))))
+
+(def little (lcfirst big))        ; "BoPeep"    -> "boPeep" 
+
+;; Clojure's capitalize is like Perl's ucfirst, except it upper-cases
+;; the first character, and lower-cases the rest.
+(def big (capitalize little))     ; "bO"      -> "Bo"
+;; -----------------------------
+;; Clojure's upper-case is based on Java's
+;; java.lang.String/toUpperCase, which respects the current default
+;; Locale.  Similarly for lower-case and capitalize.
+(def beast "dromedary")
+;; capitalize various parts of beast
+(def capit (capitalize beast))     ; Dromedary
+(def capall (upper-case beast))    ; DROMEDARY
+(def caprest (lcfirst (upper-case beast)))  ; dROMEDARY
+;; -----------------------------
+;; capitalize each word's first character, downcase the rest
+(let [text "thIS is a loNG liNE"
+      text (replace text #"\w+" capitalize)]
+  (printf "%s\n" text))
+This Is A Long Line
+;; -----------------------------
+;; @@INCLUDE@@ include/clojure/ch01/randcap.clj
+;; -----------------------------
 
 ;; 1.10 Interpolating Functions and Expressions Within Strings
 
