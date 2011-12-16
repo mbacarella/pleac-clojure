@@ -278,3 +278,34 @@
 ;; #"\b([A-Za-z]+)\b"    ; usually best
 ;; #"\s([A-Za-z]+)\s"    ; fails at ends or w/ punctuation
 ;;-----------------------------
+
+;; @@PLEAC@@_6.4 Commenting Regular Expressions
+;;-----------------------------
+;; The Perl Cookbook lists 4 methods for Perl: comments outside the
+;; pattern, comments inside the pattern with the /x modifier, comments
+;; inside the replacement part of s///, and alternate delimeters.
+;;
+;; Clojure has comments outside the pattern, and comments inside the
+;; pattern as long as they are preceded by (?x).  If the replacement
+;; part of a call to str/replace is a function, then that function can
+;; have normal Clojure comments in it.  Clojure does not have
+;; alternate delimeters.
+;; @@INCLUDE@@ include/clojure/ch06/resname.clj
+;;-----------------------------
+(str/replace s
+             #"(?x)       # replace
+               \#         #   a pound sign
+               (\w+)      #   the variable name
+               \#         #   another pound sign
+              "
+             (fn [[whole-match var-name]]
+               (str (eval (read-string var-name)))))
+;;-----------------------------
+;; You can nest calls to eval as much as you like in Clojure.
+
+;; TBD: I'm not sure why the previous Perl example allows getting only
+;; the values of global variables, whereas the second example can use
+;; the value of any variables, and whether the Clojure example above
+;; could be written differently to access only global, only local, or
+;; both kinds of symbols.
+;;-----------------------------
