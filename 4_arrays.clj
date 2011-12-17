@@ -1642,20 +1642,10 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 
 ;; @@PLEAC@@_4.17 Randomizing An Array
 ;;-----------------------------
-(defn shuffle [coll]
-  (let [java-vec (java.util.Vector. coll)]
-    (java.util.Collections/shuffle java-vec)
-    (seq java-vec)))
-
-(let [shuffled-list (shuffle collection)]
+;; Clojure standard library has shuffle built right in
+(let [shuffled-vec (shuffle collection)]
+  ;; ...
   )
-
-;; Minor point: While Java's java.util.Vector class is mutable, and we
-;; mutate it in place using shuffle for efficiency, this function as a
-;; whole is purely functional, because it takes an immutable
-;; collection, and returns an immutable collection.  The mutable thing
-;; it uses temporarily is a local variable allocated inside the call,
-;; and becomes unreferenced garbage when the function returns.
 
 ;; If you want to implement the Fisher-Yates shuffle yourself, using a
 ;; mutable Java array is a straightforward way.  There might not be a
@@ -1664,13 +1654,23 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
   (let [a (into-array Object coll)]
     (loop [i (dec (alength a))]
       (if (zero? i)
-        (vec a)
+        (vec a)    ; copy Java array contents to Clojure vector and return that
         (let [j (rand-int (inc i))]
           (if (not= i j)
             (let [temp (aget a i)]
               (aset a i (aget a j))
               (aset a j temp)))
           (recur (dec i)))))))
+
+;; Minor point: While the Java array used above is mutable, and we
+;; mutate it in place for efficiency, function fisher-yates-shuffle
+;; "as a whole" is purely functional (well, except for the minor
+;; detail about using a pseudo-random number generator inside and so
+;; rarely returning the same result for the same input :-), because it
+;; takes an immutable collection, and returns an immutable collection.
+;; The mutable thing it uses temporarily is a local variable allocated
+;; inside the call, and becomes inaccessible garbage when the function
+;; returns.
 ;;-----------------------------
 (let [permutations (factorial (count array))
       shuffle (map #(array %) (n2perm (inc (rand-int permutation))
