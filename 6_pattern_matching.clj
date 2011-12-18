@@ -309,3 +309,144 @@
 ;; could be written differently to access only global, only local, or
 ;; both kinds of symbols.
 ;;-----------------------------
+
+;; @@PLEAC@@_6.5 Finding the Nth Occurrence of a Match
+;;-----------------------------
+;; We'll do this in the Perl explicit loop style below, but first let
+;; us do the shortest way, using re-seq to generate a sequence of all
+;; matches, and picking out the 3rd item (items are indexed starting
+;; at 0, so number 2):
+(def s "One fish two fish red fish blue fish")
+
+(def WANT 3)
+(let [matches (re-seq #"(?i)(\w+)\s+fish\b" s)]
+  ;; Ignore the string that matches the whole pattern by binding it to _
+  (if-let [[_ adjective] (nth matches (dec WANT) nil)]
+    (printf "The third fish is a %s one.\n" adjective)))
+
+;; Note that re-seq generates a lazy sequence.  It will not match any
+;; more than 3 times in our use above, because we never use any
+;; element past the third one.
+
+;; If we had left out the last argument nil in the nth call, and there
+;; were fewer than WANT matches, nth would throw an exception when
+;; asked to find an item past the end of the list.
+
+;; Now here is a way using loop
+(def s "One fish two fish red fish blue fish")
+
+(def WANT 3)
+(loop [count 0
+       matcher (re-matcher #"(?i)(\w+)\s+fish\b" s)]
+  (if-let [[_ adjective] (re-find matcher)]
+    (if (== (inc count) WANT)
+      (printf "The third fish is a %s one.\n" adjective)
+      ;; count was not modified by (inc count) above, but matcher is a
+      ;; Java object that _is_ modified in place by calling re-find on
+      ;; it.
+      (recur (inc count) matcher))))
+
+;; Unlike the Perl version, the code above will stop after finding the
+;; WANT-th match, because there is no recur executed after the printf
+;; is done.
+
+;; If we wanted to be wasteful of compute time and iterate through all
+;; of the later matches, even though we are not going to do anything
+;; with them, we can ensure that we always recur whether a match is
+;; found or not, like so:
+
+(loop [count 0
+       matcher (re-matcher #"(?i)(\w+)\s+fish\b" s)]
+  (if-let [[_ adjective] (re-find matcher)]
+    (do              ; use do two group the following two statements together
+      (if (== (inc count) WANT)
+        (printf "The third fish is a %s one.\n" adjective))
+      (recur (inc count) matcher))))
+
+;; Here is finding the third match by using a repeat count in the
+;; pattern.
+
+(re-find #"(?i)(?:\w+\s+fish\s+){2}(\w+)\s+fish" s)
+;;-----------------------------
+;; using loop
+(loop [count 0
+       matcher (re-matcher #"PAT" s)]
+  (if-let [[_ adjective] (re-find matcher)]
+    (do
+      ;; whatever you want to do here.  When finished with the loop,
+      ;; don't call recur.  To go around again, you must call recur.
+      (recur (inc count) matcher))))
+
+;; Clojure has no trailing while built in.  You could write your own
+;; with a macro if you like.
+
+;; The loop above is equivalent to the Perl for loop example.
+
+;; To count overlapping matches, change #"PAT" to #"(?=PAT)"
+;;-----------------------------
+;; The next Perl examples are more like the first Clojure example
+;; in this section.
+(def pond "One fish two fish red fish blue fish")
+
+;; This time we map the function 'second' over the result of re-seq,
+;; to extract out the second item of each match, which is the string
+;; that matches the parenthesized group (\w+)
+
+;; using a temporary
+(let [colors (map second (re-seq #"(?i)(\w+)\s+fish\b" pond)) ; LAZILY get matches
+      color (nth colors 2 nil)]                    ; then the one we want
+  ;; ...
+  )
+
+;; or without a temporary list
+(let [color (nth (map second (re-seq #"(?i)(\w+)\s+fish\b" pond))
+                 2 nil)]
+  (printf "The third fish in the pond is %s.\n" color))
+;;-----------------------------
+;; The idx value passed to the fn that is the first argument of
+;; keep-indexed starts at 0 for the first item in the sequence, so in
+;; this example we need to keep the odd idx valued items, even though
+;; we call it evens.
+(def s "One fish two fish red fish blue fish")
+(let [evens (keep-indexed (fn [idx item] (if (odd? idx) item))
+                          (map second (re-seq #"(?i)(\w+)\s+fish\b" s)))]
+  (printf "Even numbered fish are %s.\n" (str/join " " evens)))
+;; Even numbered fish are two blue.
+;;-----------------------------
+(def c (atom 0))
+(str/replace s #"(?x)
+                 \b             # makes next \w more efficient (TBD?)
+                 ( \w+ )        # this is what we'll be changing
+                 (
+                   \s+ fish \b
+                 )
+                "
+             (fn [[all-match g1 g2]]
+               (swap! c inc)
+               (if (== @c 4)
+                 (str "sushi" g2)
+                 (str g1 g2))))
+;; One fish two fish red fish sushi fish
+;;-----------------------------
+(def pond "One fish two fish red fish blue fish swim here.")
+(let [color (second (last (re-seq #"(?i)\b(\w+)\s+fish\b" pond)))]
+  (printf "Last fish is %s.\n" color))
+;; Last fish is blue.
+;;-----------------------------
+;; This seems to me a very strange part of the Perl Cookbook.
+
+;; In an earlier paragraph they give a perfectly reasonable and
+;; working way to get the last match of a pattern PAT using a single
+;; regex, like this: /.*PAT/.  That will match the last occurrence of
+;; PAT, because the .* is greedy and will match as much of the string
+;; as possible, including any earlier occurrences of strings that
+;; match PAT before the last one.
+
+;; So why do they go to the trouble of showing a much more complex way
+;; of doing it with a single regex later?  I know Perl culture
+;; celebrates "there is more than one way to do it", but if they are
+;; going to show us this way, why not show us how to do it by
+;; implementing our own regex matching library?  Yes, I know I am
+;; exaggerating the extra complexity they went to here, but it is
+;; still weird.
+;;-----------------------------
