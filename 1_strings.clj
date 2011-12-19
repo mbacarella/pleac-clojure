@@ -400,7 +400,7 @@ sample
 ;; the same as Perl does, even for that case, by first removing any
 ;; leading whitespace before doing the split.
 (defn perl-split-on-space [s]
-  (str/split (str/replace-first s #"^\s+" "") #"\s+"))
+  (str/split (str/triml s) #"\s+"))
 
 (str/join " " (reverse (perl-split-on-space str)))
 ;; -----------------------------
