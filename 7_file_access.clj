@@ -1,4 +1,3 @@
-;; FILE ACCESS
 ;; @@PLEAC@@_7.0 Introduction
 ;; -----------------------------
 (ns pleac-section-7.0

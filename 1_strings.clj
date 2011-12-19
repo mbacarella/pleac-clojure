@@ -246,7 +246,6 @@
 (def string "Yoda said, \"can you see this?\"")
 
 (def allwords (str/split string #"\s+"))
-
 (def revwords (str/join " " (reverse allwords)))
 
 (printf "%s\n" revwords)
@@ -576,21 +575,47 @@
 
 ;; 1.9 Expanding Variables in User Input
 
-;; @PLEAC@@_1.10 Controlling Case
+;; @@PLEAC@@_1.10 Controlling Case
 (.toUpperCase "foo") ;; -> "FOO"
 (.toLowerCase "FOO") ;; -> "foo"
 
 ;; 1.11 Interpolating Functions and Expressions Within Strings
 
-;; 1.12 Indenting Here Documents
+;; @@PLEAC@@_1.12 Indenting Here Documents
+
+@@INCOMPLETE@@
+(ns pleac-example-1-12
+  [:require [clojure.contrib [str-utils2 :as s]]])
+(def var
+  (let [re #"^[\t ]+"] ("
+    your text
+    goes here
+" re "\n")))
 
 ;; 1.13 Reformatting Paragraphs
 
 ;; 1.14 Escaping Characters
 
-;; 1.15 Trimming Blanks from the Ends of a String
+;; @@PLEAC@@_1.15 Trimming Blanks from the Ends of a String
 
+;; -----------------------------
 (.trim string)
-;; (.trim "  foo  ") => "foo"
+;; => (.trim "  foo  ")
+;; "foo"
+;; -----------------------------
+
+;; -----------------------------
+;; print what's typed, but surrounded by <> symbols
+(ns pleac-example-1-15
+  (:require [clojure.java.io :as io]))
+
+;; We'd normally use the with-open macro to ensure the
+;; file descriptor was closed when we're done with it,
+;; but stdin was already open for us, so it makes sense to
+;; leave it alone.
+(doseq [line (line-seq (io/reader *in*))]
+  (printf ">%s<\n" (.trim line)))
+
+;; -----------------------------
 
 ;; 1.16 Parsing Comma-Separated Data
