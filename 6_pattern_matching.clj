@@ -488,3 +488,91 @@
         (printf "chunk %d in %s has <<%s>>\n"
                 @chunk-num file g1)))))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.7 Reading Records with a Pattern Separator
+;;-----------------------------
+(require '[clojure.string :as str])
+
+(let [chunks (str/split (slurp "filename-or-uri") #"pattern")]
+  ;; use chunks here
+  )
+;;-----------------------------
+
+;; Clojure's built-in split does not behave like Perl's split when
+;; there are parenthesized capture groups in the regex pattern.
+;; Perl's behavior of including these captured strings in the list
+;; returned by split can be useful, so implementing that behavior in
+;; Clojure would be nice.
+
+;; Here is one implementation, called split-with-capture, that should
+;; work like Perl's split, including for arbitrary values of the limit
+;; parameter (-1, 0, and any positive value).  It is built on top of
+;; re-groups+ first introduced in Section 1.7, and includes an
+;; re-find+ function that can be useful on its own, because it returns
+;; not only the string matched, but also the part of the string before
+;; and after the match, like Perl's $` and $' special variables.
+
+(require '[clojure.string :as str])
+
+(defn re-groups+ [^java.util.regex.Matcher m s]
+  (let [gc (. m (groupCount))
+        pre (subs s 0 (. m (start)))
+        post (subs s (. m (end)))]
+    (loop [v [pre] c 0]
+      (if (<= c gc)
+        (recur (conj v (. m (group c))) (inc c))
+        (conj v post)))))
+
+(defn re-find+
+  "Returns the next regex match, if any, of string to pattern, using
+  java.util.regex.Matcher.find().  Uses re-groups+ to return the
+  groups if a match was found, meaning that on a match the return
+  value will always be a vector consisting of these strings:
+
+  [ before-match match capture1 capture2 ... after-match ]
+
+  Where capture1, capture2, etc. are strings that matched
+  parenthesized capture groups in the pattern, if any."
+  [^java.util.regex.Pattern re s]
+  (let [m (re-matcher re s)]
+    (when (. m (find))
+      (re-groups+ m s))))
+
+(defn drop-trailing-empty-strings [result]
+  (loop [max (count result)]
+    (if (zero? max)
+      []
+      (if (= "" (result (dec max)))
+        (recur (dec max))
+        (subvec result 0 max)))))
+
+(defn split-with-capture-core [s re limit]
+  (loop [result []
+         s s
+         c 1]
+    (if (or (= s "") (= c limit))
+      (conj result s)
+      (if-let [matches (re-find+ re s)]
+        (let [pre (matches 0)
+              capture-groups (subvec matches 2 (dec (count matches)))
+              post (peek matches)]
+          (recur (apply conj result pre capture-groups) post (inc c)))
+        ;; else we are done, and s is the last string to be returned
+        (conj result s)))))
+
+(defn split-with-capture
+  ([s re]
+     (drop-trailing-empty-strings (split-with-capture-core s re nil)))
+  ([s re limit]
+     (if (zero? limit)
+       (split-with-capture s re)
+       (split-with-capture-core s re (if (pos? limit) limit nil)))))
+
+;; Assuming all of the above is in a library somewhere, here is the
+;; "new code" to get the job at hand done.
+
+(let [chunks (split-with-capture (slurp "filename-or-uri")
+                                 #"(?m)^\.(Ch|Se|Ss)$")]
+  (printf "I read %d chunks.\n" (count chunks)))
+;;-----------------------------
