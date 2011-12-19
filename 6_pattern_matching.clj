@@ -450,3 +450,41 @@
 ;; exaggerating the extra complexity they went to here, but it is
 ;; still weird.
 ;;-----------------------------
+
+;; @@PLEAC@@_6.6 Matching Multiple Lines
+;;-----------------------------
+;; In Java and therefore Clojure regex patterns, (?m) at the beginning
+;; of the pattern works like Perl's /m at the end of a pattern, and
+;; (?s) works like Perl's /s.
+
+;; @@INCLUDE@@ include/clojure/ch06/killtags.clj
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/headerfy.clj
+;;-----------------------------
+;; There is no Clojure one-liner for this, unless you stretch the
+;; definition of one line to include a significantly longer line.
+;;-----------------------------
+;; This example reuses function paragraph-seq defined in headerfy.clj
+;; above.
+
+;; Also, I believe the Perl example has a bug in it, since it goes
+;; into an infinite loop if it every finds a paragraph that matches.
+;; It should probably be changed so that in addition to the modifiers
+;; 'sm' after the regexp #^START(.*?)^END#sm, it should also have 'g'
+;; added to them, so that the inner while loop iterates over multiple
+;; matches in the same paragraph.  Either that or perhaps the intent
+;; was that the inner while should be an if instead of a while.  I've
+;; written the Clojure version to match the behavior of a while with
+;; the 'g' option added to the regexp.
+(def chunk-num (atom 0))
+
+(doseq [file (or *command-line-args* [*in*])]
+  (with-open [rdr (io/reader file)]
+    (doseq [pgraph (paragraph-seq rdr)]
+      ;; (?s) makes . span line boundaries
+      ;; (?m) makes ^ match near newlines
+      (swap! chunk-num inc)
+      (doseq [[whole-match g1] (re-seq #"(?sm)^START(.*?)^END" pgraph)]
+        (printf "chunk %d in %s has <<%s>>\n"
+                @chunk-num file g1)))))
+;;-----------------------------
