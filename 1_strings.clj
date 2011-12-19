@@ -441,10 +441,10 @@ this?" see you "can said, Yoda
 (def revwords (str/join "" (reverse (split-with-capture str
                                       #"^(.*?)(\s+)(.*)$"))))
 
-;; We could write a version that did not require the ^(.*?) and (.*)$
-;; in the regex if we used re-groups+ below, and a modified re-find+,
-;; that always returned the part of the string before and after a
-;; match.
+;; We can write a version that does not require the ^(.*?) and (.*)$
+;; in the regex if we use re-groups+ from Section 1.7 and a modified
+;; re-find that always returns the part of the string before and after
+;; a match.  See Section 6.7 for that.
 ;; -----------------------------
 (def word "reviver")
 (def is-palindrome (= word (str/reverse word)))
@@ -646,14 +646,14 @@ this?" see you "can said, Yoda
 (defn replace-first+
   [^CharSequence s ^java.util.regex.Pattern re f]
   (let [m (re-matcher re s)]
-    (let [buffer (StringBuffer. (.length s))]
-      (if (.find m)
+    (if (.find m)
+      (let [buffer (StringBuffer. (.length s))]
         (let [groups (re-groups+ m s)
               rep (f groups)]
           (.appendReplacement m buffer rep)
           (.appendTail m buffer)
-          [(second groups) (str buffer)])
-        [nil s]))))
+          [(second groups) (str buffer)]))
+      [nil s])))
 
 ;; Assuming the above are added to Clojure, or some user-defined
 ;; library of commonly-used utilities, the "new code" is as follows:
