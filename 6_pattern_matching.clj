@@ -576,3 +576,42 @@
                                  #"(?m)^\.(Ch|Se|Ss)$")]
   (printf "I read %d chunks.\n" (count chunks)))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.8 Extracting a Range of Lines
+;;-----------------------------
+
+;; TBD: Consider writing Clojure functions range-inc and range-exc
+;; that take the contents of a line/record string as an argument,
+;; and/or a function of two arguments (the string and the line/record
+;; number) returning a logical true or false value, and behaves like
+;; Perl's .. or ... operators.  The syntax would be more verbose than
+;; Perl's, but it should work.
+
+
+;; @@PLEAC@@_6.9 Matching Shell Globs as Regular Expressions
+;;-----------------------------
+(import '(java.util.regex Pattern Matcher))
+(require '[clojure.string :as str])
+
+;; (java.util.regex.Pattern/quote s) is like Perl's "\Q$s" for quoting
+;; a string's special characters so that they will match literally.
+
+;; In addition, str/replace when using a pattern to match against
+;; gives special meanings to backslash and dollar sign characters in
+;; the replacement string.  We use (re-qr replacement-str) to make the
+;; replacement string be replaced literally.
+
+(defn re-qr [replacement]
+  (Matcher/quoteReplacement replacement))
+
+(defn glob2pat [globstr]
+  (let [patmap { "*" ".*",
+                 "?" ".",
+                 "[" "[",
+                 "]" "]" }
+        globstr (str/replace globstr #"."
+                             (fn [s] (re-qr (or (patmap s)
+                                                (Pattern/quote s)))))]
+    (str "^" globstr "$")))
+;;-----------------------------
