@@ -571,11 +571,27 @@
       (printf "%s\n" (unexpand line)))))
 ;; -----------------------------
 
-;; 1.8 Expanding and Compressing Tabs
+;; @@PLEAC@@_1.8 Expanding and Compressing Tabs
+
+(ns pleac-example-1-8
+  [:require [clojure.contrib [str-utils2 :as s]]])
+
+(defn expand-tabs [string & num-spaces]
+  (let [num-spaces  (or (first num-spaces) 8)
+        pattern     #"\t"
+        replacement (apply str (repeat num-spaces " "))]
+    (s/replace string pattern replacement)))
+
+(defn compress-tabs [string & num-spaces]
+  (let [num-spaces  (or (first num-spaces) 8)
+        pattern     (apply str (repeat num-spaces " "))
+        replacement "\t"]
+    (s/replace string pattern replacement)))
 
 ;; 1.9 Expanding Variables in User Input
 
 ;; @@PLEAC@@_1.10 Controlling Case
+
 (.toUpperCase "foo") ;; -> "FOO"
 (.toLowerCase "FOO") ;; -> "foo"
 
@@ -583,7 +599,6 @@
 
 ;; @@PLEAC@@_1.12 Indenting Here Documents
 
-@@INCOMPLETE@@
 (ns pleac-example-1-12
   [:require [clojure.contrib [str-utils2 :as s]]])
 (def var
@@ -591,6 +606,8 @@
     your text
     goes here
 " re "\n")))
+
+@@INCOMPLETE@@
 
 ;; 1.13 Reformatting Paragraphs
 
@@ -619,3 +636,10 @@
 ;; -----------------------------
 
 ;; 1.16 Parsing Comma-Separated Data
+(ns pleac-example-1-16)
+
+;; 1.17 Soundex Matching
+
+;; 1.18 Program: fixstyle
+
+;; 1.19 Program: psgrep
