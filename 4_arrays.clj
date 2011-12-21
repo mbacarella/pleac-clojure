@@ -339,7 +339,7 @@ nil
 
 ;;-----------------------------
 (doseq [user bad-users]
-  (comlain user))
+  (complain user))
 ;;-----------------------------
 (doseq [var (sort (keys (System/getenv)))]
   (printf "%s=%s\n" var (get (System/getenv) var)))
@@ -960,7 +960,7 @@ diff=9 2 8 6 1
 ;;-----------------------------
 ;; Clojure data structures are immutable, so we can't write a splice
 ;; function that modifies these data structures, but we can write a
-;; split that will return a new data structure that is similar in its
+;; splice that will return a new data structure that is similar in its
 ;; value to the Perl one, after splice modifies it.
 
 ;; First, we'll write a simpler version that only works with an offset
@@ -974,7 +974,7 @@ diff=9 2 8 6 1
 
 ;; Since the example below uses a splice with negative offset, I'll go
 ;; ahead and give what I think is a full implementation of all cases
-;; of positive, 0, or negaitve arguments to Perl's splice for offset
+;; of positive, 0, or negative arguments to Perl's splice for offset
 ;; and length.  It should also work as a helper for implementing a
 ;; Clojure function that works like Perl's substr, based on Clojure's
 ;; subs, which is why ps-start-end is written as a separate function.
@@ -1598,7 +1598,7 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 ;; end          returns last item
 ;;              "O(1)"                    O(n)
 ;;
-;;              (pop v) return vec        (bustlast l)
+;;              (pop v) return vec        (butlast l)
 ;;              with last item removed
 ;;              "O(1)"?                   O(n)
 
