@@ -98,13 +98,79 @@
 (def string (subs string 0 (- (count string) 10)))
 ;; his wasn'
 ;; -----------------------------
+;; test whether a pattern matches in a substring
+(if (re-find #"pattern" (subs string 0 (- (count string) 10)))
+  (printf "Pattern matches in last 10 characters.\n"))
+
+;; Substitute "at" for "is", restricted to first five characters.
+;; Clojure doesn't have mutable strings, so it doesn't have mutable
+;; substrings, either.  We build up a new string from the ones we
+;; have.
+(let [string (str (str/replace (subs string 0 5) #"is" "at")
+                  (subs string 5))]
+  ;; ...
+  )
+;; -----------------------------
+;; exchange the first and last letters in a string
+(let [a "make a hat"
+      len-1 (dec (count a))
+      a (str (subs a len-1)
+             (subs a 1 len-1)
+             (subs a 0 1))]
+  (printf "%s" a))
+;; take a ham
+;; -----------------------------
+;; TBD: extract column like Perl's unpack does
+;; -----------------------------
+;; We'll show how to implement cut2fmt in Clojure, but since the
+;; return value in the original code is intended as an input string to
+;; unpack, which Clojure does not have built in, it would be better to
+;; write different code for the intended purpose of splitting up lines
+;; at particular column numbers.
+(defn cut2fmt [& positions]
+  (let [positions-with-1-first (cons 1 (seq positions))
+        pairs (partition 2 1 positions-with-1-first)
+        deltas (map (fn [[lastpos place]] (- place lastpos)) pairs)
+        template-parts (map #(format "A%d " %) deltas)]
+    (str (apply str template-parts) "A*")))
+
+(let [fmt (cut2fmt 8 14 20 26 30)]
+  (printf "%s\n" fmt))
+;; A7 A6 A6 A6 A4 A*
+
+;; Here is variation on cut2fmt, using ->> to shorten it.  Each of the
+;; let symbols above becomes the last argument to the next expression.
+;; Sometimes you want it shorter like this, but sometimes the
+;; intermediate names are useful for understanding how the code works.
+(defn cut2fmt [& positions]
+  (let [template-parts (->> (cons 1 (seq positions))
+                            (partition 2 1)
+                            (map (fn [[lastpos place]] (- place lastpos)))
+                            (map #(format "A%d " %)))]
+    (str (apply str template-parts) "A*")))
+
+;; Here is a Clojure function to split a string at the specified list
+;; of column numbers.  It does not implement the full functionality of
+;; Perl's unpack.
+(defn split-at-cols [& positions]
+  (let [positions-0-first (cons 0 (map dec positions))
+        last-pos (last positions-0-first)
+        pairs (partition 2 1 positions-0-first)
+        subs-args (concat pairs (list (list last-pos)))]
+    (fn [s]
+      (map #(apply subs s %) subs-args))))
+
+(def s "12345678901234567890123456789012345678901234567890")
+(def splitter (split-at-cols 8 14 20 26 30))
+(splitter s)
+;; ("1234567" "890123" "456789" "012345" "6789" "012345678901234567890")
+;; -----------------------------
 
 ;; @@PLEAC@@_1.2 Establishing a Default Value
-
+;; -----------------------------
 ;; While Perl treats undef, 0, and "" as false, Clojure treats the
 ;; values false and nil as false, but 0 and "" as true.
 
-;; -----------------------------
 ;; use b if b is true, else c
 ;; Note that if b has never been defined or had a value bound to it,
 ;; then unlike Perl this will give an error that the value is
@@ -113,7 +179,7 @@
 
 ;; re-define x with the value y, unless x is already true
 (def x (when-not x y))
-
+;; -----------------------------
 ;; use b if b is defined, otherwise c
 ;; This correctly tests whether b is bound to a value or not, but
 ;; if it is not, then it throws an exception because of the last
@@ -130,17 +196,54 @@
   (let [a (if (find (ns-interns *ns*) 'b) (eval 'b) c)]
     (printf "a=%s" a)))
 ;; a=c-value
-
 ;; -----------------------------
 (def foo (or bar "DEFAULT VALUE"))
-
+;; -----------------------------
 ;; Clojure data structures are immutable.  The code below does not
 ;; change the value of *command-line-args*, whereas Perl
 ;; 'shift(@ARGV)' does modify @ARGV by removing its first element.
-(def dir
-  (if (>= (count *command-line-args*) 1)
-    (nth *command-line-args* 0)
-    "/tmp"))
+(def dir (or (first *command-line-args*) "/tmp"))
+;; -----------------------------
+;; The previous Clojure example is quite close to the Perl example's
+;; behavior here.  One way in which the Clojure example behaves better
+;; is that even if the first command line argument is the string "0",
+;; that is treated as logically true by Clojure, since it is neither
+;; nil nor false, so dir will become "0" as intended if that is the
+;; first command line argument, not "/tmp".
+;; -----------------------------
+;; This Perl version works the same as the previous example, except
+;; the Perl version modifies @ARGV, but the Clojure version leaves
+;; *command-line-args* unmodified.
+;; -----------------------------
+;; The Clojure code above is completely identical to the behavior of
+;; this Perl code: neither modifies the list of command line args, and
+;; both use "0" if that is the value of the first arg.
+;; -----------------------------
+;; See Section 4.6 for more explanation of update-in and fnil.
+(let [count (update-in count [(or shell "/bin/sh")] (fnil inc 0))]
+  ;; ...
+  )
+;; -----------------------------
+;; TBD: What would Clojure version of Perl's getlogin() and getpwuid()
+;; be?  For $< to get the real uid of this process?
+(let [user (or (get (System/getenv) "USER")
+               (get (System/getenv) "LOGNAME")
+               "Unknown uid number")]
+  ;; ...
+  )
+;; -----------------------------
+(let [starting-point (or starting-point "Greenwich")]
+  ;; ...
+  )
+;; -----------------------------
+(let [a (if (or (nil? a) (== 0 (count a))) b a)]  ; assign if a was nil or empty
+  ;; ...
+  )
+(let [a (if (or (nil? b) (== 0 (count b))) c b)]  ; assign b if nonempty, else c
+  ;; ...
+  )
+;; -----------------------------
+
 
 ;; @@PLEAC@@_1.3 Exchanging Values Without Using Temporary Variables
 ;; -----------------------------
@@ -185,8 +288,11 @@
 ;; @@PLEAC@@_1.4 Converting Between ASCII Characters and Values
 
 ;; -----------------------------
+;; Clojure has a type for an individual character, unlike Perl which
+;; has strings of characters, but not a separate type for an
+;; individual character.
 (def num (int \a))     ; => ASCII code 97
-(def char (char 97))   ; => \a
+(def c (char 97))      ; => \a
 ;; -----------------------------
 
 (defn print-ascii-code-for-char [c]
@@ -194,8 +300,52 @@
 
 ;; (print-ascii-code-for-char \a)
 ;; Number 97 is the ASCII character a
+;; -----------------------------
+(def ascii (map int string))
+(def string (apply str (map char ascii)))
+;; -----------------------------
+(def ascii-value (int \e))  ; now 101
+(def character (char 101))  ; now character \e
+;; -----------------------------
+(def ascii-character-numbers (map int "sample"))
+(printf "%s\n" (str/join " " ascii-character-numbers))
+115 97 109 112 108 101
+
+(def word (apply str (map char ascii-character-numbers)))
+(def word (apply str (map char [ 115 97 109 112 108 101 ])))
+(printf "%s\n" word)
+sample
+;; -----------------------------
+(let [hal "HAL"
+      ascii (map int hal)
+      ascii (map inc ascii)  ; add one to each ASCII value
+      ibm (apply str (map char ascii))]
+  (printf "%s\n" ibm))       ; prints "IBM"
+;; -----------------------------
 
 ;; @@PLEAC@@_1.5 Processing a String One Character at a Time
+;; -----------------------------
+;; I'm not sure why, but this:
+(def array (str/split string #""))
+;; does not work the same as the Perl split(//, $string).  The Clojure
+;; version returns an empty string as the first item in the result,
+;; whereas the Perl does not.
+
+;; This will split up a string into one string per 16-bit Java
+;; character.  Note that it does not try to keep together UTF-16
+;; surrogate pairs as a single character.
+(def sequence (map str (seq string)))
+
+;; As mentioned in previous section, this will get their ASCII values,
+;; if only ASCII values are in the string, or in general get 16-bit
+;; code points, treating surrogate pairs as two consecutive 16-bit
+;; values.
+(def sequence (map int string))
+
+;; TBD: Consider writing a version that works with UTF-16 surrogate
+;; pairs in the string, converting them into a single string, or a
+;; single integer, when they are found.
+;; -----------------------------
 ;; Strings in Clojure can be treated as sequences, so the usual
 ;; map, reduce, doseq functions apply.
 (defn one-char-at-a-time [f string] (doseq [b string] (f b)))
@@ -207,17 +357,32 @@
 ;; do something with: b
 ;; do something with: c
 ;; ----------------------------
-
 (defn print-uniq-chars [string]
   (printf "unique chars are: %s\n"
-          (sort (set string))))
+          (apply str (sort (set string)))))
 ;; => (print-uniq-chars "an apple a day")
-;; unique chars are: (\space \a \d \e \l \n \p \y)
+;; unique chars are:  adelnpy
+;; -----------------------------
+;; (re-seq #"." string) returns a sequence of length 1 strings, as
+;; opposed to (set string) above, which returns a sequence of
+;; characters, which are different objects than length 1 strings in
+;; Java and Clojure.
+(defn print-uniq-chars [string]
+  (printf "unique chars are: %s\n"
+          (apply str (sort (set (re-seq #"." string))))))
+;; => (print-uniq-chars "an apple a day")
+;; unique chars are:  adelnpy
 ;; -----------------------------
 (defn print-ascii-value-sum [string]
   (printf "sum is %s\n" (apply + (map int string))))
 ;; => (print-ascii-value-sum "an apple a day")
 ;; sum is 1248
+;; -----------------------------
+;; TBD: Clojure version of Perl's $sum = unpack("%32C*", $string); ?
+;; -----------------------------
+;; TBD: Clojure version of include/perl/ch01/sum
+;; -----------------------------
+;; @@INCLUDE@@ include/clojure/ch01/slowcat.clj
 ;; -----------------------------
 
 ;; @@PLEAC@@_1.6 Reversing a String by Word or Character
@@ -228,33 +393,58 @@
 
 (def revbytes (str/reverse string))
 ;; -----------------------------
-;; TBD: Verify whether the split call below matches the behavior of
-;; Perl split with a " " as first arg.  Should we use the regular
-;; expression #"\s+" to match Perl behavior more closely?  Does that
-;; even match exactly?  What about white space before first word or
-;; after last word in the string to be split?
-(str/join " " (reverse (str/split str #"\s+")))
+;; Clojure's (str/split str #"\s+") is almost the same behavior as
+;; Perl's split(" ", $str), except if $str has leading whitespace, in
+;; which case the former will return a list where the first string is
+;; empty, but the latter will not.  perl-split-on-space handles this
+;; the same as Perl does, even for that case, by first removing any
+;; leading whitespace before doing the split.
+(defn perl-split-on-space [s]
+  (str/split (str/triml s) #"\s+"))
+
+(str/join " " (reverse (perl-split-on-space str)))
 ;; -----------------------------
 (def gnirts (str/reverse string))    ; str/reverse reverses letters in string
 
 (def sdrow (reverse words))          ; reverse reverses elements in sequence
 
-;; TBD: What corresponds to following Perl?
-;; $confused = reverse(@words);        # reverse letters in join("", @words)
+(def confused (str/reverse (str/join "" words)))
 ;; -----------------------------
 ;; reverse word order
 (def string "Yoda said, \"can you see this?\"")
-
-(def allwords (str/split string #"\s+"))
+(def allwords (perl-split-on-space string))
 (def revwords (str/join " " (reverse allwords)))
-
 (printf "%s\n" revwords)
+this?" see you "can said, Yoda
 ;; -----------------------------
-;; There is no shortcut in Clojure like in Perl for the last arg of
-;; str/split equal to " " meaning the same thing as matching on the
-;; regular expression #"\s+"
+(def revwords (str/join " " (reverse (perl-split-on-space str))))
 ;; -----------------------------
-(def revwords (str/join " " (reverse (str/split str #"\s+"))))
+;; Perl's split, when given a regex containing a parenthesized group,
+;; returns strings in the resulting list that match that group, but
+;; Java and Clojure's split do not do this.  We can write something
+;; similar as follows.
+
+;; This function requires that the regex is of the form:
+;; #"^(.*?)(your desired split pattern here)(.*)$"
+(defn split-with-capture [s re]
+  (loop [result []
+         s s]
+    (if (= s "")
+      result
+      (if-let [[all pre middle post] (re-find re s)]
+        (if (= pre "")    ; Ignore a 0-length match of ^(.*?)
+          (recur (conj result middle) post)
+          (recur (conj result pre middle) post))
+        ;; else we are done, and s is the last string to be returned
+        (conj result s)))))
+
+(def revwords (str/join "" (reverse (split-with-capture str
+                                      #"^(.*?)(\s+)(.*)$"))))
+
+;; We can write a version that does not require the ^(.*?) and (.*)$
+;; in the regex if we use re-groups+ from Section 1.7 and a modified
+;; re-find that always returns the part of the string before and after
+;; a match.  See Section 6.7 for that.
 ;; -----------------------------
 (def word "reviver")
 (def is-palindrome (= word (str/reverse word)))
@@ -267,8 +457,13 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
-(doseq [filename *command-line-args*]
-  (with-open [rdr (io/reader filename)]
+;; Note: (or *command-line-args* [*in*]) returns *command-line-args*
+;; if one or more command line args were specified, otherwise it
+;; returns a vector containing one element, the value of *in*.  This
+;; makes the following code reasonably close to the behavior of Perl's
+;; "while (<>) ...".
+(doseq [file (or *command-line-args* [*in*])]
+  (with-open [rdr (io/reader file)]
     (doseq [line (line-seq rdr)]
       (when (and (= line (str/reverse line))
                  (>= (count line) 5))
@@ -309,8 +504,27 @@
 ;;
 ;; % print-palindromes.clj /usr/share/dict/words
 
-;; @@PLEAC@@_1.7 Reversing a String by Word or by Character
 
+;; If you often want to write Clojure code that operates like Perl's
+;; "while (<>) ...", or some other control structure that doesn't
+;; already exist in Clojure, you can make a new one with defmacro.
+;; For example, here is a macro while-<> and an example of its use
+;; that works like the above.
+(defmacro while-<>
+  [[file line] & body]
+  `(doseq [~file (or *command-line-args* [*in*])]
+     (with-open [rdr# (clojure.java.io/reader ~file)]
+       (doseq [~line (line-seq rdr#)]
+         ~@body))))
+
+(while-<> [file line]
+  (when (and (= line (str/reverse line))
+             (>= (count line) 5))
+    (printf "%s\n" line)))
+;; -----------------------------
+
+
+;; @@PLEAC@@_1.7 Expanding and Compressing Tabs
 ;; -----------------------------
 ;; Clojure's built-in regexp matching functions have something like
 ;; Perl's $& that returns everything that a regexp matched within a
@@ -348,9 +562,9 @@
         s))))
 
 ;; Performance note: The code above will recompile the regexp #"\t+"
-;; each time through the loop.  If you want it to be compiled only
-;; once, wrap the function body in a (let [pat #"\t+"] ...) and use
-;; pat in place of #"\t+" in the body.
+;; each time through the loop (TBD: true?).  If you want it to be
+;; compiled only once, wrap the function body in a (let [pat #"\t+"]
+;; ...) and use pat in place of #"\t+" in the body.
 
 ;; Another way is to use the regexp "^([^\t]*)(\t+)" instead of simply
 ;; "\t+".  The ([^\t]*) will explicitly match everything before the
@@ -420,7 +634,7 @@
 
 ;; replace-first+ is based on Clojure's hidden internal function
 ;; replace-first-by, except that it calls the user-supplied fn f for
-;; calculating the replcement string with the return value of
+;; calculating the replacement string with the return value of
 ;; re-groups+ instead of re-groups, so f can use those additional
 ;; strings to calculate the replacement.
 
@@ -432,14 +646,14 @@
 (defn replace-first+
   [^CharSequence s ^java.util.regex.Pattern re f]
   (let [m (re-matcher re s)]
-    (let [buffer (StringBuffer. (.length s))]
-      (if (.find m)
+    (if (.find m)
+      (let [buffer (StringBuffer. (.length s))]
         (let [groups (re-groups+ m s)
               rep (f groups)]
           (.appendReplacement m buffer rep)
           (.appendTail m buffer)
-          [(second groups) (str buffer)])
-        [nil s]))))
+          [(second groups) (str buffer)]))
+      [nil s])))
 
 ;; Assuming the above are added to Clojure, or some user-defined
 ;; library of commonly-used utilities, the "new code" is as follows:
@@ -506,12 +720,12 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
-;; Use your preferred version of expand here.
+;; Use your preferred version of expand here.  See Section 1.6 for
+;; definition of while-<>.
 
-(doseq [filename *command-line-args*]
-  (with-open [rdr (io/reader filename)]
-    (doseq [line (line-seq rdr)]
-      (printf "%s\n" (expand line)))))
+(while-<> [file line]
+  (printf "%s\n" (expand line)))
+          
 ;; -----------------------------
 ;; Below is a version of expand-str that takes an optional argument
 ;; tabstop.  It is based upon the last version of expand-str given
@@ -565,41 +779,61 @@
 
 ;; Use your preferred version of expand and unexpand here.
 
-(doseq [filename *command-line-args*]
-  (with-open [rdr (io/reader filename)]
-    (doseq [line (line-seq rdr)]
-      (printf "%s\n" (unexpand line)))))
+(while-<> [file line]
+  (printf "%s\n" (unexpand line)))
 ;; -----------------------------
 
-;; @@PLEAC@@_1.8 Expanding and Compressing Tabs
+;; @@PLEAC@@_1.8 Expanding Variables in User Input
+;; -----------------------------
+;; -----------------------------
 
-(ns pleac-example-1-8
-  [:require [clojure.contrib [str-utils2 :as s]]])
+;; @@PLEAC@@_1.9 Controlling Case
+;; -----------------------------
+(use '[clojure.string :only (upper-case lower-case capitalize replace)])
 
-(defn expand-tabs [string & num-spaces]
-  (let [num-spaces  (or (first num-spaces) 8)
-        pattern     #"\t"
-        replacement (apply str (repeat num-spaces " "))]
-    (s/replace string pattern replacement)))
+(def big (upper-case little))     ; "bo peep" -> "BO PEEP"
+(def little (lower-case big))     ; "JOHN"    -> "john"
+;; I know of no way in Clojure to change case similar to Perl's \U and
+;; \L inside of interpolated strings.
+;; -----------------------------
+;; Clojure has no ucfirst or lcfirst, but we can write them easily
+;; enough if we want them.  This lcfirst is patterned after Clojure's
+;; clojure.string/capitalize.  ucfirst is nearly identical.
+(defn lcfirst [^CharSequence s]
+  (let [s (.toString s)]
+    (if (< (count s) 2)
+      (lower-case s)
+      (str (lower-case (subs s 0 1)) (subs s 1)))))
 
-(defn compress-tabs [string & num-spaces]
-  (let [num-spaces  (or (first num-spaces) 8)
-        pattern     (apply str (repeat num-spaces " "))
-        replacement "\t"]
-    (s/replace string pattern replacement)))
+(def little (lcfirst big))        ; "BoPeep"    -> "boPeep" 
 
-;; 1.9 Expanding Variables in User Input
+;; Clojure's capitalize is like Perl's ucfirst, except it upper-cases
+;; the first character, and lower-cases the rest.
+(def big (capitalize little))     ; "bO"      -> "Bo"
+;; -----------------------------
+;; Clojure's upper-case is based on Java's
+;; java.lang.String/toUpperCase, which respects the current default
+;; Locale.  Similarly for lower-case and capitalize.
+(def beast "dromedary")
+;; capitalize various parts of beast
+(def capit (capitalize beast))     ; Dromedary
+(def capall (upper-case beast))    ; DROMEDARY
+(def caprest (lcfirst (upper-case beast)))  ; dROMEDARY
+;; -----------------------------
+;; capitalize each word's first character, downcase the rest
+(let [text "thIS is a loNG liNE"
+      text (replace text #"\w+" capitalize)]
+  (printf "%s\n" text))
+This Is A Long Line
+;; -----------------------------
+;; @@INCLUDE@@ include/clojure/ch01/randcap.clj
+;; -----------------------------
 
-;; @@PLEAC@@_1.10 Controlling Case
+;; 1.10 Interpolating Functions and Expressions Within Strings
 
-(.toUpperCase "foo") ;; -> "FOO"
-(.toLowerCase "FOO") ;; -> "foo"
+;; @@PLEAC@@_1.11 Indenting Here Documents
 
-;; 1.11 Interpolating Functions and Expressions Within Strings
-
-;; @@PLEAC@@_1.12 Indenting Here Documents
-
-(ns pleac-example-1-12
+(ns pleac-example-1-11
   [:require [clojure.contrib [str-utils2 :as s]]])
 (def var
   (let [re #"^[\t ]+"] ("
@@ -609,11 +843,11 @@
 
 @@INCOMPLETE@@
 
-;; 1.13 Reformatting Paragraphs
+;; 1.12 Reformatting Paragraphs
 
-;; 1.14 Escaping Characters
+;; 1.13 Escaping Characters
 
-;; @@PLEAC@@_1.15 Trimming Blanks from the Ends of a String
+;; @@PLEAC@@_1.14 Trimming Blanks from the Ends of a String
 
 ;; -----------------------------
 (.trim string)
@@ -635,11 +869,10 @@
 
 ;; -----------------------------
 
-;; 1.16 Parsing Comma-Separated Data
-(ns pleac-example-1-16)
+;; 1.15 Parsing Comma-Separated Data
 
-;; 1.17 Soundex Matching
+;; 1.16 Soundex Matching
 
-;; 1.18 Program: fixstyle
+;; 1.17 Program: fixstyle
 
-;; 1.19 Program: psgrep
+;; 1.18 Program: psgrep

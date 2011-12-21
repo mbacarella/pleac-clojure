@@ -1,7 +1,10 @@
 ;; @@PLEAC@@_4.0 Introduction
 
 ;;-----------------------------
-;; vectors
+;; Vectors.  Unlike Perl, the effect of these two lines is not
+;; equivalent.  The first creates a vector of 4 items, all strings.
+;; The second creates a vector of 3 items, where the first 2 are
+;; strings, and the 3rd is a vector containing 2 strings.
 (def simple ["this" "that" "the" "other"])
 (def nested ["this" "that" ["the" "other"]])
 
@@ -14,15 +17,37 @@
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.1 Specifying a List in Your Program
+;;-----------------------------
 (def a ["quick" "brown" "fox"])
+;;-----------------------------
+;; almost-qw is close to Perl's qw, but it treats leading whitespace
+;; differently.
+(defn almost-qw [s]
+  (str/split s #"\s+"))
+
+(almost-qw "  Leading whitespace behaves differently than Perl's qw  ")
+;; ["" "Leading" "whitespace" "behaves" "differently" "than" "Perl's" "qw"]
+
+;; perl-split-on-space was introduced in Section 1.6
+(defn perl-split-on-space [s]
+  (str/split (str/triml s) #"\s+"))
+
 (defn qw
   "Split string on whitespace. Returns a seq."
-  [s] (seq (.split s "\\s")))
+  [s] (perl-split-on-space s))
+
 (def a2 (qw "Why are you teasing me?"))
-(def lines
-  (.replaceAll "    The boy stood on the burning deck,
-    It was as hot as glass."
-               "\\ +" ""))
+;;-----------------------------
+;; The 'map second' part is because each element returned by the
+;; re-seq is a vector with 2 elements: the first is the string that
+;; matched the entire pattern, the second is the string that matched
+;; the parenthesized group (.+).  (?m) at the beginning of the pattern
+;; allows ^ to match the beginning of a line inside the string, just
+;; after a newline, like Perl's /m at the end of a pattern.
+(def lines (map second (re-seq #"(?m)\s*(.+)"
+"    The boy stood on the burning deck,
+    It was as hot as glass.
+")))
 ;;-----------------------------
 (ns bigvector
   (:require [clojure.string :as str]
@@ -38,10 +63,99 @@
     (flush)
     (System/exit 1)))
 ;;-----------------------------
+;; There is no distinction in Clojure similar to Perl's single-quoting
+;; and double-quoting of strings, because there is no string
+;; interpolation in Clojure.
+(def banner "The Mines of Moria")
+;;-----------------------------
+;; Probably the most similar thing in Clojure to Perl's string
+;; interpolation is using format, which is like sprintf in Perl.
+(def name "Gandalf")
+(def banner (format "Speak, %s, and enter!" name))
+;;-----------------------------
+;; Note that Clojure's clojure.java.shell/sh takes as arguments a
+;; separate string for each 'word' on the command line, not a single
+;; string that is then parsed to separate it into words.
+(require '[clojure.java.shell :as shell])
+(def his-host "www.perl.com")
+(def host-info (:out (shell/sh "nslookup" his-host)))
+
+;; I haven't found a simpler way to get the JVM's process ID.  Here
+;; are two web pages describing several possibilities:
+;; http://blog.igorminar.com/2007/03/how-java-application-can-discover-its.html
+;; http://stackoverflow.com/questions/35842/process-id-in-java
+(defn getpid []
+  (let [pid-at-host-str
+        (. (java.lang.management.ManagementFactory/getRuntimeMXBean) getName)]
+    (if-let [match (re-find #"^(\d+)@" pid-at-host-str)]
+      (read-string (second match)))))
+
+(def clojure-info (:out (shell/sh "ps" (str (getpid)))))
+;; If you want something equivalent to the following in Perl:
+
+;; $shell_info = qx'ps $$';        # that's the new shell's $$
+
+;; then the following is a good first try, but it does not work as
+;; above, because it does not start a shell process that can interpret
+;; and replace the "$$".  Instead it directly starts the process ps
+;; without invoking a shell process first, so the "ps" command sees
+;; the first argument as the string "$$", which it most likely prints
+;; an error message about.
+(def shell-info (:out (shell/sh "ps" "$$")))
+
+;; This is closer, but it hard-codes the use of bash as the shell.
+;; Note that in this case bash expects the entire command to parse as
+;; a single string.  That is why "ps $$" is all one string.
+(def shell-info (:out (shell/sh "bash" "-c" "ps $$")))
+
+;; If you do this frequently, and you want to use the value of the
+;; SHELL environment variable to decide which shell to run, defaulting
+;; to bash only if SHELL is not defined, a function like this is
+;; recommended:
+(defn shell-run [cmd]
+  (let [shell (or (get (System/getenv) "SHELL") "bash")]
+    (:out (shell/sh shell "-c" cmd))))
+
+(def shell-info (shell-run "ps $$"))
+
+;; Note that at least on my Mac, both the Perl and Clojure versions
+;; above result in a string the one below, showing the ps command
+;; instead of bash.  This is because the bash process is doing an exec
+;; call to replace itself with the ps process, having the same process
+;; ID.
+
+;;  PID   TT  STAT      TIME COMMAND
+;; 3606 s002  R+     0:00.01 ps 3606
+;;-----------------------------
+(def banner ["Costs" "only" "$4.95"])
+(def banner (qw "Costs only $4.95"))
+;; Note the use of perl-split-on-space here instead of Clojure's
+;; str/split.
+(def banner (perl-split-on-space "Costs only $4.95"))
+;;-----------------------------
+;; Clojure's strings can be multiline, but they can only be delimited
+;; with "double quote characters", not a large variety of characters
+;; as Perl allows.  You must escape double-quote characters that you
+;; want to be included as part of the string.
+(def brax   (qw " ( ) < > { } [ ] "))
+(def rings  (qw "Nenya Narya Vilya"))
+(def tags   (qw "LI TABLE TR TD A IMG H1 P"))
+(def sample (qw "The vertical bar (|) looks and behaves like a pipe."))
+;;-----------------------------
+;; As mentioned above, Clojure cannot use anything except double-quote
+;; characters to delimit strings.
+(def banner (qw "The vertical bar (|) looks and behaves like a pipe."))
+;;-----------------------------
+(def ships (qw "Niña Pinta Santa María"))   ; WRONG
+(def ships ["Niña" "Pinta" "Santa María"])  ; right
+;;-----------------------------
 
 
 ;; @@PLEAC@@_4.2 Printing a List with Commas
 ;;-----------------------------
+;; Note that to use concat to append a single item to the end of a
+;; sequence, we have to put that single item into its own 1-item
+;; sequence, using (list item), (vec item), etc.
 (defn commify-series [coll]
   (case (count coll)
         0 ""
@@ -57,6 +171,8 @@
 I have [red yellow green] marbles.
 
 I have red yellow green marbles.
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch04/commify_series.clj
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.3 Changing Array Size
@@ -118,7 +234,6 @@ The index of the last element is 2.
      (loop [people people]
        (if (< (count people) 10001)
          (recur (conj people nil))
-         ;; else
          people)))
 (what-about-that-vector people)
 ;;-----------------------------
@@ -134,7 +249,7 @@ Element #3 is `null'.
 ;;-----------------------------
 
 ;; Clojure is often written in a functional style, meaning that you
-;; calculate output value from input values.  So Clojure's 'for' is
+;; calculate an output value from input values.  So Clojure's 'for' is
 ;; actually a way to take one or more input sequences and produce an
 ;; output sequence, and in fact this is done in a lazy fashion,
 ;; meaning that no actual computation occurs unless some other code
@@ -187,11 +302,29 @@ i=3
 i=4
 1 2 3 4 5)
 
-;; If you want to force the iteration to occur when it is evaluated,
-;; use doseq instead.  It does not return any useful value (only nil),
-;; and is intended to be used when the body contains side effects.
-;; Here the (inc i) is superfluous, since it simply returns a value
-;; that is ignored by the rest of the expression around it.
+;; If you want to force the iteration of 'for' to occur when it is
+;; evaluated, you can wrap it, or any other expression that returns a
+;; lazy result, in a call to doall, which forces the entire sequence
+;; to be evaluated.
+user=> (def a1 (doall (for [i (range 0 5)] (do (printf "i=%d\n" i) (inc i)))))
+i=0
+i=1
+i=2
+i=3
+i=4
+#'user/a1
+
+;; Since the for has already been evaluated, it is not evaluated again
+;; when we ask to show the value of a1 this time.
+user=> a1
+(1 2 3 4 5)
+
+;; Another way to iterate similar to for, and force the iteration to
+;; occur when the expression is evaluated, is to use doseq.  It does
+;; not return any useful value (only nil), and is intended to be used
+;; when the body contains side effects.  Here the (inc i) is
+;; superfluous, since it simply returns a value that is ignored by the
+;; rest of the expression around it.
 user=> (def a1 (doseq [i (range 0 5)] (printf "i=%d\n" i) (inc i)))
 i=0
 i=1
@@ -203,6 +336,7 @@ i=4
 ;; As mentioned above, doseq always returns nil.
 user=> a1
 nil
+
 ;;-----------------------------
 (doseq [user bad-users]
   (comlain user))
@@ -237,7 +371,8 @@ nil
 ;; "my", i.e. their scope is local to the body of the loop, and any
 ;; value the symbol had outside the loop is not visible inside, and
 ;; any change made inside has no affect on the symbol's value outside
-;; the loop.
+;; the loop (if the symbol had a value before the loop was
+;; encountered).
 (doseq [item array]
   (printf "i = %s\n" item))
 ;;-----------------------------
@@ -635,10 +770,25 @@ a e
 (let [hash (assoc hash "key1" 1 "key2" 2)]
   ;; ...
   )
+;; Another way:
+(let [hash (merge hash {"key1" 1, "key2" 2})]
+  ;; ...
+  )
 ;;-----------------------------
-;; TBD: What does this Perl code do?
+;; The behavior of this Perl code:
+
+;; @seen{@B} = ();
+
+;; is to add all of the values in array @B as keys in the map %seen,
+;; but with "no value", i.e. they keys are associated with the value
+;; undef.
+
+;; This is pretty much equivalent in Clojure, with the usual
+;; distinction that Clojure is returning a new map, not modifying the
+;; original one in place as Perl does.
+(def seen (merge seen (zipmap B (repeat nil))))
 ;;-----------------------------
-;; TBD: What does this Perl code do?
+(def seen (merge seen (zipmap B (repeat 1))))
 ;;-----------------------------
 
 ;; @@PLEAC@@_4.8 Computing Union, Intersection, or Difference of Unique Lists
@@ -779,10 +929,10 @@ diff=9 2 8 6 1
                         isect []
                         diff []]
         (doseq [e (keys count)]
-          (var-set union (conj (var-get union) e))
+          (var-set union (conj @union e))
           (let [target (if (== (count e) 2) isect diff)]
-            (var-set target (conj (var-get target) e))))
-        [(var-get union) (var-get isect) (var-get diff)])]
+            (var-set target (conj @target e))))
+        [@union @isect @diff])]
   (printf "union=%s\n" (str/join " " union))
   (printf "isect=%s\n" (str/join " " isect))
   (printf "diff=%s\n" (str/join " " diff)))
@@ -824,12 +974,16 @@ diff=9 2 8 6 1
 
 ;; Since the example below uses a splice with negative offset, I'll go
 ;; ahead and give what I think is a full implementation of all cases
-;; of positive, 0, or negaitve arguments to Perl's splice (and also
-;; substr) for offset and length.  This helper function converts Perl
-;; offset and length arguments to Clojure start and end arguments for
-;; subvec (and also subs).  It is a bit of a mess because of all of
-;; the conditions to check.  There is likely code much like this
-;; buried inside of Perl's implementation of subs and splice.
+;; of positive, 0, or negaitve arguments to Perl's splice for offset
+;; and length.  It should also work as a helper for implementing a
+;; Clojure function that works like Perl's substr, based on Clojure's
+;; subs, which is why ps-start-end is written as a separate function.
+
+;; This helper function converts Perl offset and length arguments to
+;; Clojure start and end arguments for subvec (and also subs).  It is
+;; a bit of a mess because of all of the conditions to check.  There
+;; is likely code much like this buried inside of Perl's
+;; implementation of substr and splice.
 
 (defn ps-start-end
   ([n offset]
@@ -1033,8 +1187,17 @@ Found matching item null
     (printf "Found matching item %s\n" (array match-idx))
     (printf "No matching item found\n")))
 ;;-----------------------------
-;; TBD: Read more about what this example is intended to do.  Should
-;; Clojure example create a new class?  Seems like overkill.
+;; Assume that for each employee in employees, (category employee) and
+;; (name employee) will return what $employee->category() and
+;; $employee->name() do in the Perl example.
+
+;; Note that the original Perl example will never assign a value to
+;; $highest_engineer if no employee has the category "engineer", and
+;; the code below will assign a value of nil to highest-engineer in
+;; that case.  Both examples should really check for that case, unless
+;; there is some reason you believe that it can never happen.
+(let [highest-engineer (first (filter #(= (category %) "engineer") employees))]
+  (printf "Highest paid engineer is: %s\n" (name highest-engineer)))
 ;;-----------------------------
 ;; Clojure loops like loop, dotimes, doseq all bind symbols locally,
 ;; i.e. within their body, only.  They do not have any accessible
@@ -1098,16 +1261,28 @@ Found matching item null
 
 ;; @@PLEAC@@_4.14 Sorting an Array Numerically
 ;;-----------------------------
+;; Clojure does not auto-convert between numbers and strings depending
+;; upon how they are used.  There is no built-in comparison function
+;; like Perl's <=> operator that takes two strings, tries to convert
+;; them to numbers, and compares them numerically.  If you have
+;; strings containing numbers in Clojure, and want to compare them
+;; numerically, you must convert the strings to numbers explicitly.
+;; If they are integers that fit into a Java long, Java's
+;; Long/parseLong might be what you want.  Bigger integers can be
+;; parsed with BigInteger's constructor like this:
+;; (BigInteger. "577777").  Double/parseDouble tries to parse and
+;; return a double value.
+
+;; (compare x y) can be used like Perl's cmp or <=> to compare two
+;; values, as long as their types are the same, or 'similar enough'.
+;; Different numeric types can be compared with compare, for example.
 (def sorted (sort unsorted))
 ;; Or if you want to do an explicit comparison function:
-(def sorted (sort #(compare. %1 %2) unsorted))
-;; Note that Clojure does not have the distinction between Perl's <=>
-;; for comparing scalars as numbers vs. cmp for comparing scalars as
-;; strings, because Clojure does not auto-convert value between types
-;; the way Perl does.
+(def sorted (sort #(compare %1 %2) unsorted))
 ;;-----------------------------
 (require '[clojure.java.shell :as shell])
 
+;; pids is an unsorted sequence of numeric process IDs
 (doseq [pid (sort pids)]
   (printf "%d\n" pid))
 (printf "Select a process ID to kill:\n")
@@ -1122,18 +1297,427 @@ Found matching item null
   ;; TBD: Is there a 'platform-independent' API for killing a process
   ;; available from Clojure or Java?  If so, use it here.  The
   ;; following depends upon a process named "kill" being available on
-  ;; the system, so probably won't work on Windows, whereas Perl's
-  ;; subroutine kill would.
+  ;; the system, so probably won't work on Windows, whereas I believe
+  ;; Perl's subroutine kill would.
   (shell/sh "kill" "-TERM" (str pid))
-  ;; TBD: Similar question for sleep.  I'm almost sure Java must have
-  ;; something here.
-  (shell/sh "sleep" "2")
+  (Thread/sleep 2000)  ; units are millisec
   (shell/sh "kill" "-KILL" (str pid)))
 (System/exit 0)
 ;;-----------------------------
-(def descending (sort #(compare. %2 %1) unsorted))
+(def descending (sort #(compare %2 %1) unsorted))
 ;;-----------------------------
-;; TBD: Put sort function in separate Clojure namespace
+;; You can use your own function of two arguments as a comparison
+;; function.  Like for Perl, it should return consistent results, and
+;; represent a total order on the items being sorted.  Unlike Perl,
+;; there are no special calling conventions with named parameters like
+;; Perl's $a and $b -- just a normal function of two arguments.  For
+;; this reason, there is no problem calling a comparison function
+;; defined in a different namespace than the namespace where sort is
+;; called.
+(ns sort.subs)
+(defn revnum [a b] (compare b a))
+
+(ns other.namespace)
+(sort sort.subs/revnum [4 19 8 3])
 ;;-----------------------------
-(def all (sort #(compare. %2 %1) [4 19 8 3]))
+(def all (sort #(compare %2 %1) [4 19 8 3]))
 ;;-----------------------------
+
+;; @@PLEAC@@_4.15 Sorting a List by Computable Field
+;;-----------------------------
+(def ordered (sort #(compare %1 %2) unordered))
+;;-----------------------------
+(let [precomputed (map (fn [x] [(compute x) x]) unordered)
+      ordered-precomputed (sort #(compare (%1 0) (%2 0)) precomputed)
+      ordered (map #(% 1) ordered-precomputed)]
+  ;; ...
+  )
+;;-----------------------------
+(def ordered (map #(% 1)
+                  (sort #(compare (%1 0) (%2 0))
+                        (map (fn [x] [(compute x) x])
+                             unordered))))
+;; Since each sequence returned by one function always becomes the
+;; last argument of the next, you can also use ->> to make code that
+;; looks more like the example with 'let' above.  The macro ->>
+;; transforms the following expression into code like the previous
+;; example.
+(def ordered (->> unordered
+                  (map (fn [x] [(compute x) x]))
+                  (sort #(compare (%1 0) (%2 0)))
+                  (map #(% 1))))
+;;-----------------------------
+(def ordered (sort #(compare (name %1) (name %2)) employees))
+;;-----------------------------
+(doseq [employee (sort #(compare (name %1) (name %2)) employees)]
+  (printf "%s earns $%s\n" (name employee) (salary employee)))
+;;-----------------------------
+(let [sorted-employees (sort #(compare (name %1) (name %2)) employees)]
+  (doseq [employee sorted-employees]
+    (printf "%s earns $%s\n" (name employee) (salary employee)))
+  ;; load bonus
+  (doseq [employee sorted-employees]
+    (if (bonus (ssn employee))
+      (printf "%s got a bonus!\n" (name employee)))))
+;;-----------------------------
+;; Unlike Perl, Clojure treats the numerical value 0 as true when it
+;; is used as a condition in if/when/and/or.  Clojure only treats the
+;; values nil and false as false.
+
+;; You can of course write a multi-key comparison function like this,
+;; as you can in Perl:
+
+(def sorted (sort #(let [cmp1 (compare (name %1) (name %2))]
+                     (if (not= cmp1 0)
+                       cmp1
+                       (let [cmp2 (compare (age %2) (age %1))]
+                         (if (not= cmp2 0)
+                           cmp2
+                           (compare (compare (salary %1) (salary %2)))))))
+                  employees))
+
+;; But we'd like something more compact than that.
+
+;; It is straightforward to write a function that takes a sequence of
+;; results of comparison operators, each of which is negative, 0, or
+;; positive, and returns the first one that is non-0, or 0 if all of
+;; them are 0.
+(defn multicmp [s]
+  (if-let [first-non-0 (first (filter #(not= % 0) s))]
+    first-non-0
+    0))
+
+(def sorted (sort #(multicmp [ (compare (name %1) (name %2))
+                               (compare (age %2) (age %1))
+                               (compare (salary %1) (salary %2)) ]) employees))
+
+;; The downside of this approach is that it always evaluates all of
+;; the (compare ...) calls every time it compares two items, even if
+;; the first one decides the issue.  It would be nicer if it did a
+;; short-circuit evaluation like Perl's || or Clojure's or.
+
+;; Fortunately, if there is a short-circuit evaluation that you wish
+;; were built into Clojure, but it isn't yet, you can make your own
+;; using macros.
+
+(defmacro multicmp
+  ([x] x)
+  ([x & next]
+     `(let [cmp# ~x]
+        (if (not= cmp# 0)
+          cmp#
+          (multicmp ~@next)))))
+
+;; We wouldn't normally write comparison functions as shown below.
+;; I'm doing it only for testing that the multicmp works as expected,
+;; including doing short-circuit evaluation.  See further below for a
+;; more typical example.
+
+(defn cmp1 [x y]
+  (println "Doing (cmp1" x y")")
+  (compare (x :name) (y :name)))
+
+(defn cmp2 [x y]
+  (println "Doing (cmp2" x y")")
+  (compare (x :age) (y :age)))
+
+(defn cmp3 [x y]
+  (println "Doing (cmp3" x y")")
+  (compare (x :salary) (y :salary)))
+
+(defn fancycmp [a b]
+  (multicmp (cmp1 a b)
+            (cmp2 a b)
+            (cmp3 a b)))
+
+(def john1 {:name "John", :age 28, :salary 35000.00 })
+(def mary  {:name "Mary", :age 25, :salary 35000.00 })
+(def john2 {:name "John", :age 37, :salary 40000.00 })
+(def john3 {:name "John", :age 28, :salary 30000.00 })
+
+(fancycmp john1 mary)
+Doing (cmp1 {:age 28, :name John, :salary 35000.0} {:age 25, :name Mary, :salary 35000.0} )
+-3
+
+(fancycmp john1 john2)
+Doing (cmp1 {:age 28, :name John, :salary 35000.0} {:age 37, :name John, :salary 40000.0} )
+Doing (cmp2 {:age 28, :name John, :salary 35000.0} {:age 37, :name John, :salary 40000.0} )
+-1
+
+(fancycmp john1 john3)
+Doing (cmp1 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary 30000.0} )
+Doing (cmp2 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary 30000.0} )
+Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary 30000.0} )
+1
+
+;; Here is the more typical example.  Note that unlike the multicmp
+;; function, with the multicmp macro we do not need to put the compare
+;; expressions in [ ].
+(def sorted (sort #(multicmp (compare (:name %1) (:name %2))
+                             (compare (:age %2) (:age %1))
+                             (compare (:salary %1) (:salary %2))) employees))
+
+;; Here is a different way to do it, from Alan Malloy.  It achieves
+;; short-circuit evaluation because map and remove are lazy, so they
+;; will not evaluating more of the sequence of keys than is needed in
+;; order to find the first compare result that is non-0.  It also
+;; achieves this because it passes in the functions like name, age,
+;; and salary, instead of the result of comparing the return values of
+;; those functions called on two items.
+(defn multicmp [& keys]
+  (fn [a b]
+    (or (first (remove zero? (map #(compare (% a) (% b))
+                                  keys)))
+        0)))
+
+(def sorted (sort (multicmp :name :age :salary) employees))
+
+;; The only down side is that it is restricted to sorting keys in
+;; ascending order.  If the keys have numeric values, like :age does,
+;; you can negate the ages before comparing them to get a descending
+;; order like so:
+(def sorted (sort (multicmp :name (comp - :age) :salary) employees))
+
+;; But this does not work if you wish to sort a field with a string
+;; value like :name in descending order, because it tries to do (-
+;; "string value").
+
+;; Below is a small modification to the previous multicmp that takes a
+;; vector [- keyfn] in place of a keyfn in order to specify that a key
+;; should be compared in the opposite order.  This function does not
+;; do any extensive error checking, but it allows you to explicitly
+;; specify ascending order by using any symbol besides - in the first
+;; vector element, e.g. [+ keyfn].
+(defn multicmp [& keys]
+  (fn [a b]
+    (or (first (remove zero? (map #(if (vector? %)
+                                     (let [[order keyfn] %]
+                                       (if (= order -)
+                                         (compare (keyfn b) (keyfn a))
+                                         (compare (keyfn a) (keyfn b))))
+                                     (compare (% a) (% b)))
+                                  keys)))
+        0)))
+
+(def sorted (sort (multicmp :name [- :age] :salary) employees))
+;;-----------------------------
+;; There may be a POSIX library for Clojure or Java that contains
+;; getpwent, but for this example we will read /etc/passwd to get the
+;; desired info.
+(require '[clojure.string :as str])
+(let [lines (str/split (slurp "/etc/passwd") #"\n")
+      usernames (map #(first (str/split % #":")) lines)
+      usernames (sort usernames)]
+  (doseq [user usernames]
+    (printf "%s\n" user)))
+;;-----------------------------
+(def sorted (sort #(compare (subs %1 1 2) (subs %2 1 2)) names))
+;;-----------------------------
+(def sorted (sort #(compare (count %1) (count %2)) strings))
+;;-----------------------------
+(let [temp (map (fn [x] [(count x) x]) strings)
+      temp (sort #(compare (%1 0) (%2 0)) temp)
+      sorted (map #(% 1) temp)]
+  ;; ...
+  )
+;;-----------------------------
+(def ordered (->> strings
+                  (map (fn [x] [(count x) x]))
+                  (sort #(compare (%1 0) (%2 0)))
+                  (map #(% 1))))
+;;-----------------------------
+;; To compare numerically rather than by string comparison, we convert
+;; the decimal strings found to numbers.  Treat a string with no
+;; numbers as if it had a 0, for sorting purposes.
+(let [temp (map (fn [x] [(if-let [y (re-find #"\d+" x)]
+                           (read-string y) 0)
+                         x]) fields)
+      sorted-temp (sort #(compare (%1 0) (%2 0)) temp)
+      sorted-fields (map #(% 1) sorted-temp)]
+  ;; ...
+  )
+;;-----------------------------
+(def sorted-fields (->> fields
+                        (map (fn [x] [(if-let [y (re-find #"\d+" x)]
+                                        (read-string y) 0)
+                                      x]))
+                        (sort #(compare (%1 0) (%2 0)))
+                        (map #(% 1))))
+;;-----------------------------
+;; Note: To get this to work on my Mac, where /etc/passwd has some
+;; comment lines beginning with #, add this as the second line:
+;;     (filter #(not (str/blank? (str/replace % #"#.*$" ""))))
+
+;; Clojure does not have Perl's auto-conversion between string and
+;; numeric types, so we will convert strings representing decimal
+;; numbers to numbers using read-string.  Java's Long/parseLong would
+;; also work.
+(->> (str/split (slurp "/etc/passwd") #"\n")
+     (map (fn [ln] (let [[login _ uid-str gid-str] (str/split ln #":")]
+                     [ln (read-string gid-str) (read-string uid-str) login])))
+     (sort #(multicmp (compare (%1 1) (%2 1))  ; gid
+                      (compare (%1 2) (%2 2))  ; uid
+                      (compare (%1 3) (%2 3))  ; login
+                      ))
+     (map #(% 0))
+     (str/join "\n")
+     (print))
+;;-----------------------------
+
+;; @@PLEAC@@_4.16 Implementing a Circular List
+;;-----------------------------
+;; Two method will be given, one using Clojure vectors, the other for
+;; Clojure lists/queues.  These data structures have different
+;; performance characteristics for operations at the beginning or end.
+
+;; Finger trees are another data structure that make all of these
+;; operations O(log n), including some other operations not listed
+;; here, like splitting a list at an arbitrary item in the middle, or
+;; concatenating two lists together.
+;;
+;; See http://github.com/clojure/data.finger-tree
+
+;; "O(1)" means O(log n), and the base of the logarithm is 32.
+
+;; Abstract     Function on               Function on
+;; operation    vector                    list/queue
+;; -----------  ------------------------  ------------------
+
+;; Remove from  (v 0) or (first v)        (first l)
+;; beginning    returns first item
+;;              "O(1)"                    O(1)
+;;
+;;              (subvec v 1) return vec   (rest l)
+;;              with first item removed
+;;              O(1)                      O(1)
+
+;; Add x to     (vec (cons x (seq v)))    (conj x l)
+;; beginning    O(n)                      O(1)
+
+;; Remove from  (peek v)                  (last l)
+;; end          returns last item
+;;              "O(1)"                    O(n)
+;;
+;;              (pop v) return vec        (bustlast l)
+;;              with last item removed
+;;              "O(1)"?                   O(n)
+
+;; Add x to     (conj v x)                (concat l (list x))
+;; end          "O(1)"                    O(n)
+
+;; Using vectors
+(def circular [1 2 3 4 5])
+(let [new-circular (vec (cons (peek circular)  ; the last shall be first
+                              (seq (pop circular))))]   ; O(n) total
+  (printf "%s\n" (str/join " " new-circular)))
+
+(let [new-circular (conj (subvec circular 1)   ; and vice versa
+                         (first circular))]    ; "O(1)" total
+  (printf "%s\n" (str/join " " new-circular)))
+
+;; Using lists
+(def circular '(1 2 3 4 5))
+(let [new-circular (cons (last circular) (butlast circular))]
+  (printf "%s\n" (str/join " " new-circular)))   ; the last shall be first
+                                                 ; O(n) total
+
+(let [new-circular (concat (rest circular) (list (first circular)))]
+  (printf "%s\n" (str/join " " new-circular)))   ; and vice versa
+                                                 ; O(n) total
+;;-----------------------------
+;; I'll use vectors here.
+
+;; Since we cannot mutate v, we'll return the first item, and a new
+;; vector that is rotated left from the input vector.
+(defn grab-and-rotate [v]
+  [(v 0) (conj (subvec v 1) (v 0))])
+  
+(loop [processes [1 2 3 4 5]]
+  (let [[process next-processes] (grab-and-rotate processes)]
+    (printf "Handling process %d\n" process)
+    (flush)    ; printf does not automatically flush its output
+    (Thread/sleep 1000)  ; units are millisec
+    (recur next-processes)))
+;;-----------------------------
+
+;; @@PLEAC@@_4.17 Randomizing An Array
+;;-----------------------------
+;; Clojure standard library has shuffle built right in
+(let [shuffled-vec (shuffle collection)]
+  ;; ...
+  )
+
+;; If you want to implement the Fisher-Yates shuffle yourself, using a
+;; mutable Java array is a straightforward way.  There might not be a
+;; way to do it in linear time without using a mutable array.
+(defn fisher-yates-shuffle [coll]
+  (let [a (into-array Object coll)]
+    (loop [i (dec (alength a))]
+      (if (zero? i)
+        (vec a)    ; copy Java array contents to Clojure vector and return that
+        (let [j (rand-int (inc i))]
+          (if (not= i j)
+            (let [temp (aget a i)]
+              (aset a i (aget a j))
+              (aset a j temp)))
+          (recur (dec i)))))))
+
+;; Minor point: While the Java array used above is mutable, and we
+;; mutate it in place for efficiency, function fisher-yates-shuffle
+;; "as a whole" is purely functional (well, except for the minor
+;; detail about using a pseudo-random number generator inside and so
+;; rarely returning the same result for the same input :-), because it
+;; takes an immutable collection, and returns an immutable collection.
+;; The mutable thing it uses temporarily is a local variable allocated
+;; inside the call, and becomes inaccessible garbage when the function
+;; returns.
+;;-----------------------------
+(let [permutations (factorial (count array))
+      shuffle (map #(array %) (n2perm (inc (rand-int permutation))
+                                      (count array)))]
+  ;; TBD: Test this
+  )
+;;-----------------------------
+(defn naive-shuffle [coll]               ; don't do this
+  (let [a (into-array Object coll)]
+    (loop [i 0]
+      (if (< i (alength a))
+        (let [j (rand-int (alength a))]  ; pick random element
+          (let [temp (aget a i)]         ; swap 'em
+            (aset a i (aget a j))
+            (aset a j temp))
+          (recur (inc i)))
+        (vec a)))))
+;;-----------------------------
+
+;; @@PLEAC@@_4.18 Program: words
+;;-----------------------------
+awk      cp       ed       login    mount    rmdir    sum
+basename csh      egrep    ls       mt       sed      sync
+cat      date     fgrep    mail     mv       sh       tar
+chgrp    dd       grep     mkdir    ps       sort     touch
+chmod    df       kill     mknod    pwd      stty     vi
+chown    echo     ln       more     rm       su
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch04/words.clj
+;;-----------------------------
+;;Wrong       Right
+;;-----       -----
+;;1 2 3       1 4 7
+;;4 5 6       2 5 8
+;;7 8 9       3 6 9
+;;-----------------------------
+
+;; @@PLEAC@@_4.19 Program: permute
+;;-----------------------------
+;; If you use 1 instead of 1N below, Clojure 1.3 will use 64-bit Java
+;; longs for arithmetic, and the result will overflow for n >= 21.
+;; The N in 1N signifies that the constant 1 is of type
+;; clojure.lang.BigInt, which can grow up to the available memory.
+(defn factorial [n]
+  (apply * (range 1N (inc n))))
+
+(print (factorial 500))
+1220136... (1135 digits total)
+
+;; TBD: Finish this section.
