@@ -1672,10 +1672,11 @@ Doing (cmp3 {:age 28, :name John, :salary 35000.0} {:age 28, :name John, :salary
 ;; inside the call, and becomes inaccessible garbage when the function
 ;; returns.
 ;;-----------------------------
+;; n2perm is defined in Section 4.19
 (let [permutations (factorial (count array))
-      shuffle (map #(array %) (n2perm (inc (rand-int permutation))
+      shuffle (map #(array %) (n2perm (inc (rand-int permutations))
                                       (count array)))]
-  ;; TBD: Test this
+  (printf "%s\n" (str/join " " shuffle))
   )
 ;;-----------------------------
 (defn naive-shuffle [coll]               ; don't do this
