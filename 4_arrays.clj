@@ -1711,13 +1711,17 @@ chown    echo     ln       more     rm       su
 ;; @@PLEAC@@_4.19 Program: permute
 ;;-----------------------------
 ;; If you use 1 instead of 1N below, Clojure 1.3 will use 64-bit Java
-;; longs for arithmetic, and the result will overflow for n >= 21.
-;; The N in 1N signifies that the constant 1 is of type
-;; clojure.lang.BigInt, which can grow up to the available memory.
+;; longs for arithmetic, and the result will overflow for n >= 21, and
+;; throw an ArithmeticException.  The N in 1N signifies that the
+;; constant 1 is of type clojure.lang.BigInt, which can grow up to the
+;; available memory.
 (defn factorial [n]
   (apply * (range 1N (inc n))))
 
 (print (factorial 500))
 1220136... (1135 digits total)
-
-;; TBD: Finish this section.
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch04/permute.clj
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch04/mjd_permute.clj
+;;-----------------------------
