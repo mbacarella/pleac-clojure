@@ -615,3 +615,49 @@
                                                 (Pattern/quote s)))))]
     (str "^" globstr "$")))
 ;;-----------------------------
+
+;; @@PLEAC@@_6.11 Testing for a Valid Pattern
+;;-----------------------------
+(let [pat (loop []
+            (printf "Pattern? ")
+            (flush)
+            (let [pat-str (read-line)]
+              (if-let [pat (try
+                             (re-pattern pat-str)
+                             (catch java.util.regex.PatternSyntaxException e
+                               (printf "INVALID PATTERN\n%s\n" e)
+                               false))]
+                pat
+                (recur))))]
+  (printf "(class pat)=%s pat=%s\n" (class pat) pat))
+;;-----------------------------
+(defn is-valid-pattern [pat-str]
+  (try
+    (re-pattern pat-str)
+    true
+    (catch java.util.regex.PatternSyntaxException e
+      false)))
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/paragrep.clj
+;;-----------------------------
+;; I am not aware of any big security holes in allowing the user to
+;; specify a pattern that is then given to the re-pattern function.
+;; It might take a huge amount of time or memory to compile, but it
+;; should not be able to break out of the Java security model without
+;; some very exotic and subtle bug in the regex pattern compiling
+;; code, or the JVM itself.
+;;-----------------------------
+;; You could do something similar to the Perl example, but again, if
+;; you want to find out if a literal string appears as a substring of
+;; another one, regex patterns are not the most efficient way to do
+;; it.
+;; The Perl Cookbook mentions using the subrouting index if that is
+;; all you want.  TBD: Is there a Clojure equivalent?  If not, what is
+;; the Java equivalent?
+(let [safe-pat-str (java.util.regex.Pattern/quote pat-str)]
+  (if (re-find (re-pattern safe-pat-str str))
+    (something)))
+;;-----------------------------
+(if (re-find (re-pattern (str "\\Q" pat-str)) str)
+  (something))
+;;-----------------------------
