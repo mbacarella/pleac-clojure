@@ -703,3 +703,37 @@
     (printf "The position in a is %s\n" (. m start))
     (printf "No match found\n")))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.15 Greedy and Non-Greedy Matches
+;;-----------------------------
+(require '[clojure.string :as str])
+
+;; greedy pattern
+(str/replace s #"(?s)<.*>" "")     ; try to remove tags, very badly
+
+;; non-greedy pattern
+(str/replace s #"(?s)<.*?>" "")    ; try to remove tags, still rather badly
+;;-----------------------------
+;;<b><i>this</i> and <i>that</i> are important</b> Oh, <b><i>me too!</i></b>
+;;-----------------------------
+(re-find #"(?sx) <b><i>(.*?)</i></b> " s)
+;;-----------------------------
+#"BEGIN((?:(?!BEGIN).)*)END"
+;;-----------------------------
+(re-find #"(?sx) <b><i>(  (?: (?!</b>|</i>). )*  ) </i></b> " s)
+;;-----------------------------
+(re-find #"(?sx) <b><i>(  (?: (?!</[ib]>). )*  ) </i></b> " s)
+;;-----------------------------
+(re-find #"(?sx)
+    <b><i> 
+    [^<]*  # stuff not possibly bad, and not possibly the end.
+    (?:
+ # at this point, we can have '<' if not part of something bad
+     (?!  </?[ib]>  )   # what we can't have
+     <                  # okay, so match the '<'
+     [^<]*              # and continue with more safe stuff
+    ) *
+    </i></b>
+ " s)
+;;-----------------------------
