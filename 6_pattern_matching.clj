@@ -661,3 +661,45 @@
 (if (re-find (re-pattern (str "\\Q" pat-str)) str)
   (something))
 ;;-----------------------------
+
+;; @@PLEAC@@_6.14 Matching from Where the Last Pattern Left Off
+;;-----------------------------
+;; Iterate through all matches of the pattern \d+ in the string s
+(doseq [number (re-seq #"\d+" s)]
+  (printf "Found %s\n" number))
+;;-----------------------------
+(let [n "   49 here"
+      n (str/replace n #"\G " "0")]
+  (printf "%s\n" n))
+00049 here
+;;-----------------------------
+(doseq [number (re-seq #"\G,?(\d+)" s)]
+  (printf "Found number %s\n" number))
+;;-----------------------------
+;; There is no built-in way in Clojure to cause the regex matching
+;; functions to remember where they were on a failed match attempt.
+;; It can be implemented by calling the Java functions
+;; java.util.regex.Matcher/find(), and remember the end position of
+;; each match by calling end().  On a failed match attempt, start the
+;; next find() at the last remembered end position by calling find
+;; with an integer argument.
+;; TBD
+;;-----------------------------
+;; If you call re-find with a matcher object m created by calling
+;; re-matcher, then you can call the java.util.regex.Matcher start()
+;; and end() methods on m to get the start and end index of the last
+;; successful match, but there are no Clojure wrappers provided for
+;; this.  If you use re-find with a pattern and string argument, the
+;; matcher is created but not returned, so it is not available to make
+;; such calls on it.
+
+;; TBD: I believe there is no API to set the position.  You can
+;; achieve a similar effect by searching in a string that is a suffix
+;; of the original string you want to search, starting at the desired
+;; position.
+(let [a "The year 1752 lost 10 days on the 3rd of September"
+      m (re-matcher #"\d+" a)]
+  (if-let [s (re-find m)]
+    (printf "The position in a is %s\n" (. m start))
+    (printf "No match found\n")))
+;;-----------------------------
