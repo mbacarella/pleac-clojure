@@ -737,3 +737,56 @@
     </i></b>
  " s)
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.16 Detecting Duplicate Words
+;;-----------------------------
+;; TBD: Make a namespace in which read-paragraph, paragraph-seq, and
+;; while-<>-graph from example include/clojure/ch06/paragrep.clj are
+;; all defined, and can be used from both places.
+(while-<>-pgraph [*command-line-args* file pgraph pgraphnum]
+  (doseq [[match word] (re-seq
+                        #"(?xi)
+                \b            # start at a word boundary (begin letters)
+                (\S+)         # find chunk of non-whitespace
+                \b            # until another word boundary (end letters)
+                (
+                    \s+       # separated by some whitespace
+                    \1        # and that very same chunk again
+                    \b        # until another word boundary
+                ) +           # one or more sets of those
+                         "
+                        pgraph)]
+    (printf "dup word '%s' at paragraph %d\n" word pgraphnum)))
+;;-----------------------------
+This is a test
+test of the duplicate word finder.
+;;-----------------------------
+(let [a "nobody"
+      b "bodysnatcher"]
+  (if-let [[whole-match g1 g2 g3]
+           (re-find #"^(\w+)(\w+) \2(\w+)$" (str a " " b))]
+    (printf "%s overlaps in %s-%s-%s\n" g2 g1 g2 g3)))
+body overlaps in no-body-snatcher
+;;-----------------------------
+#"^(\w+?)(\w+) \2(\w+)$"
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/prime-pattern.clj
+;;-----------------------------
+;; solve for 12x + 15y + 16z = 281, maximizing x
+(if-let [[whole-match X Y Z] (re-find #"^(o*)\1{11}(o*)\2{14}(o*)\3{15}$"
+                                      (apply str (repeat 281 "o")))]
+  (let [x (count X) y (count Y) z (count Z)]
+    (printf "One solution is: x=%d; y=%d; z=%d.\n" x y z))
+  (printf "No solution.\n"))
+;; One solution is: x=17; y=3; z=2.
+;;-----------------------------
+#"^(o+)\1{11}(o+)\2{14}(o+)\3{15}$"
+;; One solution is: x=17; y=3; z=2
+
+#"^(o*?)\1{11}(o*)\2{14}(o*)\3{15}$"
+;; One solution is: x=0; y=7; z=11.
+
+#"^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$"
+;; One solution is: x=1; y=3; z=14.
+;;-----------------------------
