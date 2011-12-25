@@ -790,3 +790,116 @@ body overlaps in no-body-snatcher
 #"^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$"
 ;; One solution is: x=1; y=3; z=14.
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.17 Expressing AND, OR and NOT in a Single Pattern
+;;-----------------------------
+(let [pattern (read-line)]
+  (if [re-find (re-pattern pattern) data]
+    ;; ...
+    ))
+;;-----------------------------
+#"ALPHA|BETA"
+;;-----------------------------
+#"(?s)^(?=.*ALPHA)(?=.*BETA)"
+;;-----------------------------
+#"(?s)ALPHA.*BETA|BETA.*ALPHA"
+;;-----------------------------
+#"(?s)^(?:(?!PAT).)*$"
+;;-----------------------------
+#"(?s)(?=^(?:(?!BAD).)*$)GOOD"
+;;-----------------------------
+(if (not (re-find #"pattern" s))     ; 'ugly' way is only way in Clojure
+  (something))
+;;-----------------------------
+(if (and (re-find #"pat1" s) (re-find #"pat2" s))
+  (something))
+;;-----------------------------
+(if (or (re-find #"pat1" s) (re-find #"pat2" s))
+  (something))
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/minigrep.clj
+;;-----------------------------
+(re-find #"(?s)^(?=.*bell)(?=.*lab)" "labelled")
+;;-----------------------------
+(and (re-find #"bell" s) (re-find #"lab" s))
+;;-----------------------------
+(if (re-find #"(?sx)
+             ^              # start of string
+            (?=             # zero-width lookahead
+                .*          # any amount of intervening stuff
+                bell        # the desired bell string
+            )               # rewind, since we were only looking
+            (?=             # and do the same thing
+                .*          # any amount of intervening stuff
+                lab         # and the lab part
+            )
+         "                  ; /s means . can match newline
+         murray-hill)
+  (printf "Looks like Bell Labs might be in Murray Hill!\n"))
+;;-----------------------------
+(re-find #"(?:^.*bell.*lab)|(?:^.*lab.*bell)" "labelled")
+;;-----------------------------
+(let [brand "labelled"]
+  (if (re-find #"(?sx)
+        (?:                 # non-capturing grouper
+            ^ .*?           # any amount of stuff at the front
+              bell          # look for a bell
+              .*?           # followed by any amount of anything
+              lab           # look for a lab
+          )                 # end grouper
+    |                       # otherwise, try the other direction
+        (?:                 # non-capturing grouper
+            ^ .*?           # any amount of stuff at the front
+              lab           # look for a lab
+              .*?           # followed by any amount of anything
+              bell          # followed by a bell
+          )                 # end grouper
+    "                       ; /s means . can match newline
+               brand)
+    (printf "Our brand has bell and lab separate.\n")))
+;;-----------------------------
+(re-find #"(?s)^(?:(?!waldo).)*$" map)
+;;-----------------------------
+(if (re-find #"(?sx)
+        ^                   # start of string
+        (?:                 # non-capturing grouper
+            (?!             # look ahead negation
+                waldo       # is he ahead of us now?
+            )               # is so, the negation failed
+            .               # any character (cuzza /s)
+        ) *                 # repeat that grouping 0 or more
+        $                   # through the end of the string
+    "                       ; /s means . can match newline
+             map)
+  (printf "There's no waldo here!\n"))
+;;-----------------------------
+ 7:15am  up 206 days, 13:30,  4 users,  load average: 1.04, 1.07, 1.04
+
+USER     TTY      FROM              LOGIN@  IDLE   JCPU   PCPU  WHAT
+
+tchrist  tty1                       5:16pm 36days 24:43   0.03s  xinit
+
+tchrist  tty2                       5:19pm  6days  0.43s  0.43s  -tcsh
+
+tchrist  ttyp0    chthon            7:58am  3days 23.44s  0.44s  -tcsh
+
+gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh
+;;-----------------------------
+;; % w | minigrep.clj '^(?!.*ttyp).*tchrist'
+;;-----------------------------
+#"(?x)
+    ^                       # anchored to the start
+    (?!                     # zero-width look-ahead assertion
+        .*                  # any amount of anything (faster than .*?)
+        ttyp                # the string you don't want to find
+    )                       # end look-ahead negation; rewind to start
+    .*                      # any amount of anything (faster than .*?)
+    tchrist                 # now try to find Tom
+"
+;;-----------------------------
+;; % w | grep tchrist | grep -v ttyp
+;;-----------------------------
+;; % grep -i 'pattern' files
+;; % minigrep.clj '(?i)pattern' files
+;;-----------------------------
