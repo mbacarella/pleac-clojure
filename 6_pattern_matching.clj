@@ -903,3 +903,81 @@ gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh
 ;; % grep -i 'pattern' files
 ;; % minigrep.clj '(?i)pattern' files
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.20 Matching Abbreviations
+;;-----------------------------
+(let [answer (read-line)
+      answer-pat (re-pattern (str "(?i)^\\Q" answer))]
+  (cond (re-find answer-pat "SEND")  (printf "Action is send\n")
+        (re-find answer-pat "STOP")  (printf "Action is stop\n")
+        (re-find answer-pat "ABORT") (printf "Action is abort\n")
+        (re-find answer-pat "LIST")  (printf "Action is list\n")
+        (re-find answer-pat "EDIT")  (printf "Action is edit\n")))
+;;-----------------------------
+(defn proper-prefixes [s]
+  (map #(subs s 0 %) (range 1 (count s))))
+
+(defn remove-nil-vals [m]
+  (select-keys m (filter #(m %) (keys m))))
+
+(defn abbrev
+  [str-coll]
+  (let [separate-prefix-maps (map #(zipmap (proper-prefixes %) (repeat %))
+                                  str-coll)
+        ;; Merge the separate maps.  If two maps have the same key
+        ;; (prefix) then make that key map to nil in the combined map,
+        ;; so we can know to remove it later.  Such a prefix is a
+        ;; prefix of more than one string in str-coll.
+        merged-prefix-maps (apply merge-with (fn [a b] nil) separate-prefix-maps)]
+    (merge (remove-nil-vals merged-prefix-maps)
+           ;; Non-abbreviations always get entered, even if they
+           ;; aren't unique.
+           (zipmap str-coll str-coll))))
+
+(require '[clojure.string :as str])
+;; See Section 4.1 for definition of qw
+
+(let [abbrevs (abbrev (qw "send abort list edit"))]
+  (loop []
+    (if-let [line (do (printf "Action: ") (flush) (read-line))]
+      (let [action (abbrevs (str/lower-case line))]
+        (printf "Action is %s\n" action)
+        (recur)))))
+;;-----------------------------
+(let [name "abbrev"
+      fn (resolve name)]
+  (fn (qw "send abort list edit")))
+;;-----------------------------
+;; assumes that invoke_editor, deliver_message, file and PAGER are
+;; defined somewhere else.
+
+;; TBD: It is not clear in the original Perl code how the function
+;; that prints "Unknown command" gets the value of $cmd to print.
+;; Here it is declared as a function argument, but the argument isn't
+;; actually passed in.  Should fix that.
+(require '[clojure.java.shell :as sh])
+(let [actions { "edit"  invoke_editor,
+                "send"  deliver_message,
+                "list"  (fn [] (sh/sh PAGER file)),
+                "abort" (fn []
+                          (printf "See ya!\n") (flush) (System/exit 0)),
+                ""      (fn [cmd]
+                          (printf "Unknown command: %s\n" cmd)
+                          (swap! errors inc))
+                }
+      abbrevs (abbrev (keys actions))]
+  (loop []
+    (if-let [line (do (printf "Action: ") (flush) (read-line))]
+      (let [action (str/trim line)]
+        (if (= action "")
+          (recur)
+          (do
+            ((actions (abbrevs (str/lower-case action))))
+            (recur)))))))
+;;-----------------------------
+(let [abbrevation (str/lower-case action)
+      expansion (abbrevs abbreviation)
+      fn (actions expansion)]
+  (fn))
+;;-----------------------------
