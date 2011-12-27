@@ -981,3 +981,13 @@ gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh
       fn (actions expansion)]
   (fn))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.21 Program: urlify
+;;-----------------------------
+;; % gunzip -c ~/mail/archive.gz | urlify.clj > archive.urlified
+;;-----------------------------
+;; % urlify.clj ~/mail/*.inbox > ~/allmail.urlified
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/urlify.clj
+;;-----------------------------
