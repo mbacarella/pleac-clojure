@@ -33,26 +33,35 @@
   (let [compiled-regex #"blue"]
     (with-open [rdr (io/BufferedReader. (io/FileReader. filename))]
       (doseq [line (line-seq rdr)]
-        (when-not (re-find compiled-regex line)
+        (when (re-find compiled-regex line)
           (printf "%s\n" line))))))
 
+;; I'm checking on the Clojure group, but I don't know of a way to
+;; specify the output strem of a print function other than temporarily
+;; binding *out* to the desired output stream.  It would be
+;; straightforward to implement such a function in Clojure that does
+;; this.
 (defn print-digital-lines-from-stdin []
   (let [digit-regex "#\d"]
-    (doseq [line (line-seq (io/reader *in*))]
-      (if (re-find digit-regex)
-        (printf "Read: %s\n" line)
-        (println *err* "No digit found.")))))
+    (doseq [line (line-seq (io/reader *in*))]      ; reads from *in*
+      (when-not (re-find digit-regex line)
+        (binding [*out* *err*]
+          (println "No digit found.")))            ; writes to *err*
+      (printf "Read: %s\n" line))))                ; writes to *out*
 ;; -----------------------------
 ;; The Perl code shows how to assign a file handle to LOGFILE...
-(def log-file-handle (io/writer "/tmp/log" :append true))
+;; Use (io/writer "/tmp/log" :append true) if you wish to append to
+;; existing file contents, like Perl's >>.  The example below is for
+;; overwriting any existing file contents, like Perl's >.
+(def log-file-handle (io/writer "/tmp/log"))
 ;; -----------------------------
 (.close log-file-handle)
 ;; -----------------------------
 ;; ... but because unlike Perl, flow-control in Clojure can be
 ;; interupted with conditions and exceptions, it's a good idea to
 ;; use the with-open macro to ensure the file handle is closed.
-(with-open [log-file-handle (io/writer "/tmp/log" :append true)]
-  ;; do stuff with log-file-handle.  Log-file-handle wlll be closed when
+(with-open [log-file-handle (io/writer "/tmp/log")]
+  ;; do stuff with log-file-handle.  Log-file-handle will be closed when
   ;; evaluation of this expression terminates.
   )
 ;; -----------------------------
@@ -64,6 +73,12 @@
   (with-open [fh (io/writer filename :append true)]
     (.write fh (with-out-str (f)))))
 ;; => (append-stdout-to-file (fn [] (printf "foo bar baz\n")) "/tmp/log.txt")
+
+;; Here is another way
+(binding [*out* logfile]      ; switch to logfile for output inside body
+  (printf "Countdown initiated...\n"))
+(printf "You have 30 seconds to reach minimum safety distance.\n")
+;; -----------------------------
 
 ;; @@PLEAC@@_7.1 Opening a File
 ;; -----------------------------
