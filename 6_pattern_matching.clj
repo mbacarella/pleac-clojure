@@ -991,3 +991,133 @@ gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh
 ;;-----------------------------
 ;; @@INCLUDE@@ include/clojure/ch06/urlify.clj
 ;;-----------------------------
+
+
+;; @@PLEAC@@_6.23 Regular Expression Grabbag
+;;-----------------------------
+;; Most Perl regexes can be used verbatim in the Java regex
+;; implementation.  The most common changes requires are to replace
+;; the /imsx suffixes with the corresponding (?imsx) prefix at the
+;; beginning of the pattern.  There is no /o in Java or Clojure, since
+;; pattern compilation is explicit (either by use of re-pattern, or by
+;; the #"pattern" syntax).  There is no /g in Java or Clojure -- in
+;; Clojure use re-seq, clojure.string/replace, or an explicit loop for
+;; repeated matching.
+(re-find #"(?i)^m*(d?c{0,3}|c[dm])(l?x{0,3}|x[lc])(v?i{0,3}|i[vx])$" s)
+;;-----------------------------
+(require '[clojure.string :as str])
+(str/replace-first s #"(\S+)(\s+)(\S+)" "$3$2$1")
+;;-----------------------------
+(let [m (re-find #"(\w+)\s*=\s*(.*)\s*$" s)]
+  (when m
+    ;; entire match is (m 0), keyword is (m 1), value is (m 2)
+    ))
+;;-----------------------------
+(re-find #".{80,}" s)
+;;-----------------------------
+(re-find #"(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)" s)
+;;-----------------------------
+(str/replace s #"/usr/bin" "/usr/local/bin")
+;;-----------------------------
+(str/replace s #"%([0-9A-Fa-f][0-9A-Fa-f])"
+             (fn [[whole-match hex]] (str (char (Long/parseLong hex 16)))))
+;;-----------------------------
+(str/replace s #"(?sx)
+    /\*                    # Match the opening delimiter
+    .*?                    # Match a minimal number of characters
+    \*/                    # Match the closing delimiter
+    " "")
+;;-----------------------------
+(let [s (str/replace-first s #"^\s+" "")
+      s (str/replace-first s #"\s+$" "")]
+  ;; ...
+  )
+;; or more succinctly in Clojure
+(trim s)
+;;-----------------------------
+(str/replace s #"\\n" "\n")
+;;-----------------------------
+(str/replace-first s #"^.*::" "")
+;;-----------------------------
+(re-find #"^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$" s)
+;;-----------------------------
+(str/replace-first s #"^.*/" "")
+;;-----------------------------
+(def cols (if-let [[whole-match cols-str]
+                   (re-find #":co#(\d+):" 
+                            (or (get (System/getenv) "TERMCAP") " "))]
+            (Long/parseLong cols-str) 80))
+;;-----------------------------
+(let [name (str " " *file* " " (str/join " " *command-line-args*))
+      name (str/replace name #" /\S+/" " ")]
+  ;; ...
+  )
+;;-----------------------------
+;; This appears to be somewhat like Perl's $^O, or $Config{"osname'}
+;;(get (System/getProperties) "os.name")
+(if (not (re-find #"(?i)linux" (get (System/getProperties) "os.name")))
+  (printf "This isn't Linux\n")
+  (flush)
+  (System/exit 1))
+;;-----------------------------
+(str/replace s #"\n\s+" " ")
+;;-----------------------------
+(def nums (re-seq #"\d+\.?\d*|\.\d+" s))
+;;-----------------------------
+(def capword (re-seq #"\b[^\Wa-z0-9_]+\b" s))
+;;-----------------------------
+(def lowords (re-seq #"\b[^\WA-Z0-9_]+\b" s))
+;;-----------------------------
+(def icwords (re-seq #"\b[^\Wa-z0-9_][^\WA-Z0-9_]*\b" s))
+;;-----------------------------
+(def links (map second (re-seq #"(?si)<A[^>]+?HREF\s*=\s*[\"']?([^'\" >]+?)[ '\"]?>" s)))
+;;-----------------------------
+(def initial (if-let [[whole-match init] (re-find #"^\S+\s+(\S)\S*\s+\S" s)]
+               init ""))
+;;-----------------------------
+(str/replace s #"\"([^\"]*)\"" "``$1''")
+;;-----------------------------
+;; while-<>-pgraph was defined in paragrep.clj in Section 6.11
+(def sentences (atom []))
+(while-<>-pgraph [*command-line-args* file pgraph pgraphnum]
+  (let [s (str/replace pgraph #"\n" " ")
+        s (str/replace s #" {3,}" "  ")
+        newsents (vec (map first (re-seq #"(\S.*?[!?.])(?=  |\Z)" s)))]
+    ;; (apply conj [1 2] [3 4]) => [1 2 3 4]
+    ;; but (apply conj [1 2] []) => ArityException
+    ;; so don't try to do the (appy swap! ...) call if newsents is an
+    ;; empty vector.
+    (if (not= (count newsents) 0)
+      (apply swap! sentences conj newsents))))
+;;-----------------------------
+(if-let [[whole-match yyyy mm dd] (re-find #"(\d{4})-(\d\d)-(\d\d)" s)]
+  ;; ...
+  )
+;;-----------------------------
+(re-find #"(?x)
+      ^
+      (?:
+       1 \s (?: \d\d\d \s)?            # 1, or 1 and area code
+       |                               # ... or ...
+       \(\d\d\d\) \s                   # area code with parens
+       |                               # ... or ...
+       (?: \+\d\d?\d? \s)?             # optional +country code
+       \d\d\d ([\s\-])                 # and area code
+      )
+      \d\d\d (\s|\1)                   # prefix (and area code separator)
+      \d\d\d\d                         # exchange
+        $"
+         s)
+;;-----------------------------
+(re-find #"(?i)\boh\s+my\s+gh?o(d(dess(es)?|s?)|odness|sh)\b" s)
+;;-----------------------------
+;; The 'take-while identity' part causes lines to stop on the first
+;; element of input-line-seq for which re-find does not find a match.
+(let [lines (take-while identity
+                        (map #(second
+                               (re-find #"^([^\012\015]*)(\012\015?|\015\012?)"
+                                        %))
+                             input-line-seq))]
+  ;; ...
+  )
+;;-----------------------------
