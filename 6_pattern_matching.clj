@@ -142,10 +142,17 @@
 ;; /m Let ^ and $ match next to    (?m)
 ;;    embedded \n
 
-;; /o Compile pattern only once.   Java and Clojure do this differently,
-;;                                 with explicit calls that perform
-;;                                 compilation.  TBD: Give Clojure examples
-;;                                 with repeated vs. once-only compilation.
+;; /o Compile pattern only once.   Clojure does this differently.
+;;                                 If you use the #"pattern" syntax, Clojure
+;;                                 always compiles the regex only once,
+;;                                 but as there is no string interpolation,
+;;                                 the regex must be constant at compile time.
+;;                                 re-pattern causes the regex to be compiled
+;;                                 every time it is called.  While there is
+;;                                 nothing like Perl's /o, you can move a call
+;;                                 to re-pattern before a loop if you know the
+;;                                 regex will not change during the loop's
+;;                                 execution.
 
 ;; /e Righthand side of a s///     Clojure clojure.string/replace and
 ;;    is code to eval              clojure.string/replace-all can take a function
@@ -662,13 +669,14 @@
 ;;-----------------------------
 ;; You could do something similar to the Perl example, but again, if
 ;; you want to find out if a literal string appears as a substring of
-;; another one, regex patterns are not the most efficient way to do
-;; it.
-;; The Perl Cookbook mentions using the subroutine index if that is
-;; all you want.  TBD: Is there a Clojure equivalent?  If not, what is
-;; the Java equivalent?
+;; another one, Java's java.lang.String indexOf(String str) method
+;; should be more efficient than using regex patterns.
 (let [safe-pat-str (java.util.regex.Pattern/quote pat-str)]
   (if (re-find (re-pattern safe-pat-str) s)
+    (something)))
+
+(let [idx (.indexOf s pat)]
+  (if (not= idx -1)
     (something)))
 ;;-----------------------------
 (if (re-find (re-pattern (str "\\Q" pat-str)) str)
