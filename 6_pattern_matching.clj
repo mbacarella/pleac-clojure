@@ -657,7 +657,7 @@
 ;;-----------------------------
 ;; @@INCLUDE@@ include/clojure/ch06/popgrep1.clj
 ;;-----------------------------
-;; Several of the methods given for Perl to do this seem like kludges
+;; Several of the methods given for Perl to do this seem fairly arcane
 ;; to me.  I'm not going to attempt to write Clojure versions of the
 ;; Perl programs popgrep2, popgrep3, or grepauth, preferring instead
 ;; for the straightforward Clojure code that is similar to Perl's
