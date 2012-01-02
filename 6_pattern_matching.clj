@@ -636,6 +636,37 @@
     (str "^" globstr "$")))
 ;;-----------------------------
 
+;; @@PLEAC@@_6.10 Speeding Up Interpolated Matches
+;;-----------------------------
+;; Clojure doesn't have interpolated strings or regexes, but you can
+;; have regex patterns that vary from one run to the next that are
+;; compiled with re-pattern.
+
+;; If you know that a particular regex pattern can vary at run time,
+;; but cannot change within a loop, there is nothing like Perl's /o
+;; regex modifier, but you can explicitly choose when to call
+;; re-pattern, save the result, and use that saved result to avoid
+;; unnecessarily recompiling the regex pattern.
+(require '[clojure.java.io :as io])
+
+(let [compiled-pat (re-pattern pattern-str)]
+  (doseq [line (io/reader *in*)]
+    (if (re-find compiled-pat line)
+      ;; do something
+      )))
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/popgrep1.clj
+;;-----------------------------
+;; Several of the methods given for Perl to do this seem like kludges
+;; to me.  I'm not going to attempt to write Clojure versions of the
+;; Perl programs popgrep2, popgrep3, or grepauth, preferring instead
+;; for the straightforward Clojure code that is similar to Perl's
+;; popgrep4.
+;;-----------------------------
+;; @@INCLUDE@@ include/clojure/ch06/popgrep4.clj
+;;-----------------------------
+
+
 ;; @@PLEAC@@_6.11 Testing for a Valid Pattern
 ;;-----------------------------
 (let [pat (loop []
