@@ -38,6 +38,19 @@
 ;; Every \ in the pattern must be escaped with its own preceding \.
 (def pat2b (re-pattern "\\\\\\d+\\s+\\S+"))  ; ugh!
 
+;; Another advantage of the #"pattern" syntax is that even if it
+;; occurs in a loop, or a function called many times, the regex is
+;; 'compiled' only one time, when the file or function containing it
+;; is compiled.  This is as opposed to (re-pattern "\\d+"), which
+;; causes the regex to be compiled every time the expression is
+;; evaluated.
+
+;; If you have a pattern that must change from one invocation of a
+;; function to the next, e.g. because the pattern is an argument to
+;; the function, and there is a loop that uses the pattern many times,
+;; it is more efficient to call re-pattern once, bind the result to a
+;; symbol (e.g. using let), and then use that result many times.
+
 ;; On to Clojure code that match the behavior of the Perl examples.
 
 ;; Perl: $meadow =~ m/sheep/;   # True if $meadow contains "sheep"
@@ -651,11 +664,11 @@
 ;; you want to find out if a literal string appears as a substring of
 ;; another one, regex patterns are not the most efficient way to do
 ;; it.
-;; The Perl Cookbook mentions using the subrouting index if that is
+;; The Perl Cookbook mentions using the subroutine index if that is
 ;; all you want.  TBD: Is there a Clojure equivalent?  If not, what is
 ;; the Java equivalent?
 (let [safe-pat-str (java.util.regex.Pattern/quote pat-str)]
-  (if (re-find (re-pattern safe-pat-str str))
+  (if (re-find (re-pattern safe-pat-str) s)
     (something)))
 ;;-----------------------------
 (if (re-find (re-pattern (str "\\Q" pat-str)) str)

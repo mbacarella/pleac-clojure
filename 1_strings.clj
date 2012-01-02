@@ -99,7 +99,7 @@
 ;; his wasn'
 ;; -----------------------------
 ;; test whether a pattern matches in a substring
-(if (re-find #"pattern" (subs string 0 (- (count string) 10)))
+(if (re-find #"pattern" (subs string (- (count string) 10)))
   (printf "Pattern matches in last 10 characters.\n"))
 
 ;; Substitute "at" for "is", restricted to first five characters.
@@ -393,12 +393,12 @@ sample
 
 (def revbytes (str/reverse string))
 ;; -----------------------------
-;; Clojure's (str/split str #"\s+") is almost the same behavior as
-;; Perl's split(" ", $str), except if $str has leading whitespace, in
+;; Clojure's (str/split s #"\s+") is almost the same behavior as
+;; Perl's split(" ", $s), except if $s has leading whitespace, in
 ;; which case the former will return a list where the first string is
-;; empty, but the latter will not.  perl-split-on-space handles this
-;; the same as Perl does, even for that case, by first removing any
-;; leading whitespace before doing the split.
+;; empty, but the latter will not.  perl-split-on-space below handles
+;; this the same as Perl does, even for that case, by first removing
+;; any leading whitespace before doing the split.
 (defn perl-split-on-space [s]
   (str/split (str/triml s) #"\s+"))
 
@@ -561,10 +561,11 @@ this?" see you "can said, Yoda
                       after-tabs)))
         s))))
 
-;; Performance note: The code above will recompile the regexp #"\t+"
-;; each time through the loop (TBD: true?).  If you want it to be
-;; compiled only once, wrap the function body in a (let [pat #"\t+"]
-;; ...) and use pat in place of #"\t+" in the body.
+;; Performance note: The code above will compile the regexp #"\t+"
+;; only once, even though it occurs each time in the loop.  The
+;; #"pattern" syntax is implemented in Clojure such that the regex
+;; must be constant at compile time, and is compiled only once at
+;; compile time.
 
 ;; Another way is to use the regexp "^([^\t]*)(\t+)" instead of simply
 ;; "\t+".  The ([^\t]*) will explicitly match everything before the
@@ -609,10 +610,6 @@ this?" see you "can said, Yoda
         s
         (recur next-s)))))
 
-;; Performance note: Same as above about the regexp being recompiled
-;; every time through the loop.  Bind the regexp to a symbol using
-;; let, outside of the loop, to compile it only once.
-  
 ;; My favorite version of this requires defining slightly modified
 ;; versions of clojure.core/re-groups and clojure.string/replace-first
 
@@ -667,10 +664,6 @@ this?" see you "can said, Yoda
                                                      (mod (count pre) 8))
                                                   " ")))))
       s)))
-
-;; Performance note: As before, assign the regexp #"\t+" to a symbol
-;; using let, outside of the loop, to compile it only once, instead of
-;; every time through the loop.
 
 ;; Test cases:
 
@@ -765,13 +758,12 @@ this?" see you "can said, Yoda
 (def ^:dynamic *tabstop* 4)
 (expand-str "Expand\t\tthis") ; expands to tabstop 4 this time
 
-;; Performance note: Besides the repeated one about avoiding
-;; recompilation of the regexp, a new performance issue here is that
-;; accessing dynamic vars like *tabstop* is slower than accessing a
-;; local binding like those introduced via let or loop.  Wrapping the
-;; entire function body in something like (let [tabstop *tabstop*]
-;; ... ) and using tabstop in place of *tabstop* inside the body
-;; incurs this cost only once, instead of every time through the loop.
+;; Performance note: Accessing dynamic vars like *tabstop* is slower
+;; than accessing a local binding like those introduced via let or
+;; loop.  Wrapping the entire function body in something like (let
+;; [tabstop *tabstop*] ... ) and using tabstop in place of *tabstop*
+;; inside the body incurs this cost only once, instead of every time
+;; through the loop.
 ;; -----------------------------
 (ns unexpand
   (:require [clojure.string :as str]

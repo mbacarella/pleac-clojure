@@ -30,11 +30,10 @@
 
 ;; Here's another way to do the blue line iterator.
 (defn print-blue-lines-in-file [filename]
-  (let [compiled-regex #"blue"]
-    (with-open [rdr (io/BufferedReader. (io/FileReader. filename))]
-      (doseq [line (line-seq rdr)]
-        (when (re-find compiled-regex line)
-          (printf "%s\n" line))))))
+  (with-open [rdr (io/BufferedReader. (io/FileReader. filename))]
+    (doseq [line (line-seq rdr)]
+      (when (re-find #"blue" line)
+        (printf "%s\n" line)))))
 
 ;; I'm checking on the Clojure group, but I don't know of a way to
 ;; specify the output strem of a print function other than temporarily
@@ -42,12 +41,11 @@
 ;; straightforward to implement such a function in Clojure that does
 ;; this.
 (defn print-digital-lines-from-stdin []
-  (let [digit-regex "#\d"]
-    (doseq [line (line-seq (io/reader *in*))]      ; reads from *in*
-      (when-not (re-find digit-regex line)
-        (binding [*out* *err*]
-          (println "No digit found.")))            ; writes to *err*
-      (printf "Read: %s\n" line))))                ; writes to *out*
+  (doseq [line (line-seq (io/reader *in*))]      ; reads from *in*
+    (when-not (re-find #"\d" line)
+      (binding [*out* *err*]
+        (println "No digit found.")))            ; writes to *err*
+    (printf "Read: %s\n" line)))                 ; writes to *out*
 ;; -----------------------------
 ;; The Perl code shows how to assign a file handle to LOGFILE...
 ;; Use (io/writer "/tmp/log" :append true) if you wish to append to
