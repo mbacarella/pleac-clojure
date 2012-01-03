@@ -398,9 +398,12 @@ sample
 ;; which case the former will return a list where the first string is
 ;; empty, but the latter will not.  perl-split-on-space below handles
 ;; this the same as Perl does, even for that case, by first removing
-;; any leading whitespace before doing the split.
+;; any leading whitespace before doing the split.  It also handles the
+;; corner case of returning an empty vector if s has length 0.
 (defn perl-split-on-space [s]
-  (str/split (str/triml s) #"\s+"))
+  (if (= s "")
+    []
+    (str/split (str/triml s) #"\s+")))
 
 (str/join " " (reverse (perl-split-on-space str)))
 ;; -----------------------------

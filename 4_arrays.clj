@@ -30,7 +30,9 @@
 
 ;; perl-split-on-space was introduced in Section 1.6
 (defn perl-split-on-space [s]
-  (str/split (str/triml s) #"\s+"))
+  (if (= s "")
+    []
+    (str/split (str/triml s) #"\s+")))
 
 (defn qw
   "Split string on whitespace. Returns a seq."
