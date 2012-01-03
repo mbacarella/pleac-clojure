@@ -199,3 +199,97 @@
   ;; para-count now holds the number of paragraphs read
   )
 ;;-----------------------------
+
+
+;; @@PLEAC@@_8.3 Processing Every Word in a File
+;;-----------------------------
+;; while-<> and perl-split-on-space were defined in Section 1.6
+(while-<> [file line]
+  (doseq [chunk (perl-split-on-space line)]
+    ;; do something with chunk
+    ))
+;;-----------------------------
+(while-<> [file line]
+  (doseq [w (re-seq #"\w[\w'-]*" line)]
+    ;; do something with w
+    ))
+;;-----------------------------
+;; Let us write this in two different styles.  First, keep it as close
+;; in form as possible to the original Perl code.
+(def seen (atom {}))
+
+(while-<> [file line]
+  (doseq [w (re-seq #"\w[\w'-]*" line)]
+    (swap! seen update-in [(str/lower-case w)] (fnil inc 0))))
+
+;; output map in a descending numeric sort of its values
+(doseq [word (sort #(compare (@seen %2) (@seen %1)) (keys @seen))]
+  (printf "%5d %s\n" (@seen word) word))
+
+
+;; Second, in a more "sequencey" style.  Here is an overall view of
+;; the data flow:
+;;   list of files or *in*
+;;   -> each gives a sequence of lines, and we want to concatenate
+;;      them
+;;   -> each produces 0 or more words, and we want to concatenate
+;;      those word lists
+;;   -> lowercase
+;;   -> tally
+
+;; tally was introduced in Section 4.6
+(defn tally [coll]
+  (reduce #(update-in %1 [%2] (fnil inc 0))
+          {} coll))
+
+(let [files (or *command-line-args* [*in*])
+      lines (apply concat (map #(with-open [rdr (io/reader %)]
+                                  (doall (line-seq rdr)))
+                               files))
+      words (apply concat (map #(re-seq #"\w[\w'-]*" %) lines))
+      lc-words (map str/lower-case words)
+      seen (tally lc-words)]
+  ;; output map in a descending numeric sort of its values
+  (doseq [word (sort #(compare (seen %2) (seen %1)) (keys seen))]
+    (printf "%5d %s\n" (seen word) word)))
+
+
+;; Note: In the expression for lines above, if you leave out the doall
+;; then the expression after that for words will give a 'Stream
+;; closed' exception.  This is because line-seq returns a lazy
+;; sequence, and when attempting to use its result after the with-open
+;; expression has returned will cause line-seq to attempt to read the
+;; file after it has already been closed.  This is a commonly
+;; experienced tension between lazy computation and resources (like
+;; files) that must be closed or cleaned up after.
+
+;; The solution above using doall has the advantage of being simple,
+;; but the disadvantage of requiring all lines in a file to be stored
+;; in memory at one time, even though we might wish that only one line
+;; at a time was kept in memory and then it becomes garbage.
+
+;; If you are curious, see the following Clojure Google group thread,
+;; and/or the proposed work on resource scopes in Clojure:
+;; http://groups.google.com/group/clojure/browse_thread/thread/d890cb17d13ddf8a
+;; http://dev.clojure.org/display/design/Resource+Scopes
+;;-----------------------------
+;; Line frequency count
+(def seen (atom {}))
+
+(while-<> [file line]
+  (swap! seen update-in [(str/lower-case line)] (fnil inc 0)))
+
+(doseq [line (sort #(compare (@seen %2) (@seen %1)) (keys @seen))]
+  (printf "%5d %s\n" (@seen line) line))
+
+
+;; And again in sequence style:
+(let [files (or *command-line-args* [*in*])
+      lines (apply concat (map #(with-open [rdr (io/reader %)]
+                                  (doall (line-seq rdr)))
+                               files))
+      lc-lines (map str/lower-case lines)
+      seen (tally lc-lines)]
+  (doseq [line (sort #(compare (seen %2) (seen %1)) (keys seen))]
+    (printf "%5d %s\n" (seen line) line)))
+;;-----------------------------
