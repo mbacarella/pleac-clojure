@@ -293,3 +293,28 @@
   (doseq [line (sort #(compare (seen %2) (seen %1)) (keys seen))]
     (printf "%5d %s\n" (seen line) line)))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_8.4 Reading a File Backwards by Line or Paragraph
+;;-----------------------------
+(loop [lines (vec (line-seq reader))]
+  (when-let [line (peek lines)]
+    ;; do something with line
+    (recur (pop lines))))
+;;-----------------------------
+(doseq [line (reverse (line-seq reader))]
+  ;; do something with line
+  )
+;;-----------------------------
+(let [lines (vec (line-seq reader))]
+  (doseq [i (range (dec (count lines)) -1 -1)]
+    (let [line (lines i)]
+      ;; do something with line
+      )))
+;;-----------------------------
+;; paragraph-seq was introduced in example headerfy.clj in Section
+;; 6.6.  We will not repeat its definition here.
+(doseq [paragraph (reverse (paragraph-seq reader))]
+  ;; do something with paragraph
+  )
+;;-----------------------------
