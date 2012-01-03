@@ -134,3 +134,68 @@
 ;; after the backslash, and replace (chomp % \\) with
 ;; (str/replace-first % #"\\\s*$" "").
 ;;-----------------------------
+
+
+;; @@PLEAC@@_8.2 Counting Lines (or Paragraphs or Records) in a File
+;;-----------------------------
+(require '[clojure.java.shell :as shell]
+         '[clojure.string :as str])
+
+;; shell-run was introduced in Section 4.1.  This is a modified
+;; version that returns everything shell/sh does, including the exit
+;; status as well as the output.
+(defn shell-run [cmd]
+  (let [shell (or (get (System/getenv) "SHELL") "bash")]
+    (shell/sh shell "-c" cmd)))
+
+
+(defn die [msg exit-status]
+  (binding [*out* *err*] 
+    (printf "%s" msg)
+    (flush))
+  (let [shifted-status (bit-shift-right exit-status 8)]
+    (System/exit (if (zero? shifted-status) 255 shifted-status))))
+
+
+(let [{:keys [out exit]} (shell-run (str "wc -l < " file))]
+  (when (not= exit 0)
+    (die (format "wc failed: %d" exit) exit))
+  (let [count (Long/parseLong (str/trim (str/trim-newline out)))]
+    (printf "count=%d\n" count)
+    ;; ...
+    ))
+;;-----------------------------
+(require '[clojure.java.io :as io])
+
+(let [count (with-open [rdr (io/reader file)]
+              (count (line-seq rdr)))]
+  ;; count now holds the number of lines read
+  )
+;;-----------------------------
+;; TBD: How to do unbuffered reading of file and counting of newline
+;; characters in Clojure/Java?
+;;-----------------------------
+;; Repeat of two examples above.
+;;-----------------------------
+;; We can make another version with an explicit loop if we really want
+;; to.
+(let [count (with-open [rdr (io/reader file)]
+              (binding [*in* rdr]
+                (loop [count 0
+                       line (read-line)]
+                  (if line
+                    (recur (inc count) (read-line))
+                    count))))]
+  ;; ...
+  )
+;;-----------------------------
+;; Clojure doesn't have anything quite like Perl's $. built in.
+;; Something similar could be created, but I won't do so here.
+;;-----------------------------
+;; paragraph-seq was introduced in example headerfy.clj in Section
+;; 6.6.  We will not repeat its definition here.
+(let [para-count (with-open [rdr (io/reader file)]
+                   (count (paragraph-seq rdr)))]
+  ;; para-count now holds the number of paragraphs read
+  )
+;;-----------------------------
