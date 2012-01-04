@@ -499,3 +499,55 @@
 (doseq [line (shuffle (line-seq input))]
   (printf "%s\n" line))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_8.9 Processing Variable-Length Text Fields
+;;-----------------------------
+;; given RECORD with field separated by PATTERN, extract sequence
+;; FIELDS.
+(require '[clojure.string :as str])
+(let [FIELDS (str/split RECORD #"PATTERN")]
+  ;; ...
+  )
+
+;; If you want to use capture groups in the pattern that cause
+;; additional matching items to be added to the created sequence, use
+;; split-with-capture instead, defined in Section 6.7.
+
+;; If you want the special-case Perl behavior when the pattern is a "
+;; " (not a regex), use perl-split-on-space defined in Section 1.6.
+
+;; Here is perl-split, that combines all of these behaviors into one
+;; like Perl's split.
+(defn perl-split
+  ([s re]
+     (if (= s " ")
+       (perl-split-on-space s)
+       (split-with-capture s re)))
+     (perl-split s re 0))
+  ([s re limit]
+     (if (= s " ")
+       ;; TBD: I don't think this behavior is implemented yet.
+       (perl-split-on-space s limit)
+       (split-with-capture s re limit)))
+
+(let [FIELDS (perl-split RECORD #"PATTERN")]
+  ;; ...
+  )
+;;-----------------------------
+(perl-split "3+5-2" #"([+-])")
+;;-----------------------------
+["3" "+" "5" "-" "2"]
+;;-----------------------------
+(let [FIELDS (perl-split RECORD #":")]
+  ;; ...
+  )
+;;-----------------------------
+(let [FIELDS (perl-split RECORD #"\s+")]
+  ;; ...
+  )
+;;-----------------------------
+(let [FIELDS (perl-split RECORD " ")]
+  ;; ...
+  )
+;;-----------------------------
