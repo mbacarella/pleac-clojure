@@ -490,3 +490,12 @@
                  (last))]
   (printf "%s" adage))
 ;;-----------------------------
+
+
+;; @@PLEAC@@_8.7 Randomizing All Lines
+;;-----------------------------
+;; You can use the shuffle from Chapter 4 if you want, but Clojure's
+;; built-in one is just fine.
+(doseq [line (shuffle (line-seq input))]
+  (printf "%s\n" line))
+;;-----------------------------
