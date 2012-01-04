@@ -243,10 +243,10 @@
           {} coll))
 
 (let [files (or *command-line-args* [*in*])
-      lines (apply concat (map #(with-open [rdr (io/reader %)]
-                                  (doall (line-seq rdr)))
-                               files))
-      words (apply concat (map #(re-seq #"\w[\w'-]*" %) lines))
+      lines (mapcat #(with-open [rdr (io/reader %)]
+                       (doall (line-seq rdr)))
+                    files)
+      words (mapcat #(re-seq #"\w[\w'-]*" %) lines)
       lc-words (map str/lower-case words)
       seen (tally lc-words)]
   ;; output map in a descending numeric sort of its values
@@ -272,6 +272,22 @@
 ;; and/or the proposed work on resource scopes in Clojure:
 ;; http://groups.google.com/group/clojure/browse_thread/thread/d890cb17d13ddf8a
 ;; http://dev.clojure.org/display/design/Resource+Scopes
+
+
+;; If you don't care for all of the intermediate names in the let
+;; above, then since each one is the last argument in the next
+;; expression, ->> is useful.
+(let [seen (->> (or *command-line-args* [*in*])
+                (mapcat #(with-open [rdr (io/reader %)]
+                           (doall (line-seq rdr))))
+                (mapcat #(re-seq #"\w[\w'-]*" %))
+                (map str/lower-case)
+                (tally))]
+  ;; output map in a descending numeric sort of its values
+  (doseq [word (sort #(compare (seen %2) (seen %1)) (keys seen))]
+    (printf "%5d %s\n" (seen word) word)))
+
+
 ;;-----------------------------
 ;; Line frequency count
 (def seen (atom {}))
@@ -284,12 +300,11 @@
 
 
 ;; And again in sequence style:
-(let [files (or *command-line-args* [*in*])
-      lines (apply concat (map #(with-open [rdr (io/reader %)]
-                                  (doall (line-seq rdr)))
-                               files))
-      lc-lines (map str/lower-case lines)
-      seen (tally lc-lines)]
+(let [seen (->> (or *command-line-args* [*in*])
+                (mapcat #(with-open [rdr (io/reader %)]
+                           (doall (line-seq rdr))))
+                (map str/lower-case)
+                (tally))]
   (doseq [line (sort #(compare (seen %2) (seen %1)) (keys seen))]
     (printf "%5d %s\n" (seen line) line)))
 ;;-----------------------------
