@@ -333,3 +333,160 @@
   ;; do something with paragraph
   )
 ;;-----------------------------
+
+
+;; @@PLEAC@@_8.6 Picking a Random Line from a File
+;;-----------------------------
+;; Imperative-style solution.
+;; while-<> was defined in Section 1.6
+(def rand-line (atom nil))
+(def linenum (atom 0))
+(while-<> [file line]
+  (swap! linenum inc)
+  (when (zero? (rand-int linenum))
+    (reset! rand-line line)))
+;; rand-line is the random line
+
+;; Below is a sequence style solution.
+(let [[linenum rand-line] (->> (or *command-line-args* [*in*])
+                               (mapcat #(with-open [rdr (io/reader %)]
+                                          (doall (line-seq rdr))))
+                               (keep-indexed (fn [idx line]
+                                               (if (zero? (rand-int (inc idx)))
+                                                 [(inc idx) line])))
+                               (last))]
+  ;; rand-line is the random line.  We also kept its line number in
+  ;; linenum, but you could leave that out if you didn't want it.
+  )
+;;-----------------------------
+;; Here we will mercilessly throw a bunch of Clojure code at you, but
+;; most of it consists of a couple of general-purpose Clojure
+;; functions for reading records separated by any separator value that
+;; can be assigned to Perl's $/ variable ($INPUT_RECORD_SEPARATOR if
+;; you use the English module).  See below for "NON-LIBRARY CODE
+;; BEGINS HERE" for the part of the code that assumes these things are
+;; included as part of a library.
+
+(require '[clojure.string :as str]
+         '[clojure.java.io :as io])
+
+
+(def ^:dynamic *auto-chomp* true)
+
+(defn read-paragraph-helper
+  "Reads and returns a string containing the next 'paragraph' from the
+  BufferedReader argument.  Paragraphs are taken to be consecutive
+  sequences of non-empty lines separated by one or more empty lines."
+  [^java.io.BufferedReader rdr]
+  (loop [lines nil
+         line (.readLine rdr)]
+    (cond
+     ;; If we reach end of file, return the lines we have found so
+     ;; far, if any, otherwise nil.
+     (nil? line) (if lines (apply str lines) nil)
+     ;; Skip over empty lines before the paragraph begins
+     (and (= line "") (nil? lines)) (recur nil (.readLine rdr))
+     ;; Otherwise an empty line is a sign that we reached the end of
+     ;; the paragraph we have been reading.
+     (= line "") (apply str (conj lines "\n"))
+     ;; We found a non-empty line.  Append it to the list of lines in
+     ;; the paragraph.
+     :else (recur (conj (or lines []) line "\n")
+                  (.readLine rdr)))))
+
+
+(defn read-paragraph
+  [^java.io.BufferedReader rdr]
+  (if-let [s (read-paragraph-helper rdr)]
+    (if *auto-chomp*
+      (str/trim-newline s)
+      s)))
+
+
+;; TBD: Can I use *in* as shown below, with fn read-record defined in
+;; a separate namespace from where it is called, and *in* will refer
+;; to the 'correct' *in*?  If so, why will that always work?  Because
+;; *in* is dynamic and per-thread-bound?
+
+;; TBD: Can I call this fn with sep=nil, or will ^CharSequence type
+;; hint cause an error in that case?
+
+(defn read-record
+  "Like read-line, except it reads a 'record' from the stream that is
+  the current value of *in*, where a record ends with the string sep.
+  Like Perl, sep is an exact-match string, and the values \"\" and nil
+  work like Perl's $/ equal to \"\" or undef, respectively, i.e. sep
+  equal to \"\" treats two or more consecutive newlines as the
+  separator, and sep equal to nil causes read-record to read the
+  entire stream all at once.
+
+  Returns nil if there are no more records to read.
+
+  If the variable *auto-chomp* is true, the separator string will be
+  removed from the end of the strings returned, otherwise it will be
+  left on."
+  ([^CharSequence sep]
+     (read-record *in* sep))
+  ([^java.io.BufferedReader rdr ^CharSequence sep]
+     (cond
+      (nil? sep) (slurp rdr)
+      (= sep "") (read-paragraph rdr)
+     ;; Note: The efficiency of this way of matching the sep string is
+     ;; poor if it has repeated characters in it.  Creating a DFA to
+     ;; match the string sep would be more efficient in the worst
+     ;; case, but this should be efficient enough for the expected
+     ;; common cases where characters in sep do not appear often in
+     ;; the input stream.
+      :else
+      (let [sb (StringBuilder.)
+            n-1 (dec (count sep))
+            sep-last (int (.charAt sep n-1))
+            sep-butlast (subs (str sep) 0 n-1)]
+        (loop [c (.read rdr)]
+          (if (neg? c)
+            (if (zero? (.length sb))
+              nil
+              (str sb))
+            (if (and (== c sep-last)
+                     (>= (.length sb) n-1)
+                     ;; Check whether other n-1 chars at end of sb
+                     ;; match sep-butlast
+                     (loop [i (int (dec n-1))
+                            j (int (dec (.length sb)))]
+                       (if (neg? i)
+                         true
+                         (if (= (.charAt sep-butlast i)
+                                (.charAt sb j))
+                           (recur (dec i) (dec j))
+                           false))))
+              (if *auto-chomp*
+                ;; return all but sep at the end of sb
+                (.substring sb 0 (- (.length sb) n-1))
+                (do
+                  (.append sb (char c))
+                  (.toString sb)))
+              (do
+                (.append sb (char c))
+                (recur (.read rdr))))))))))
+
+
+(defn record-seq
+  "Like line-seq, except it returns a lazy sequence of records
+  separated by the string sep.  See read-record documentation for
+  special case values of sep.  record-seq is affected by *auto-chomp*
+  as read-record is."
+  [^java.io.BufferedReader rdr ^CharSequence sep]
+  (when-let [rec (read-record rdr sep)]
+    (cons rec (lazy-seq (record-seq rdr sep)))))
+
+
+;; NON-LIBRARY CODE BEGINS HERE
+(let [adage (->> [ "/usr/share/games/fortunes" ]
+                 (mapcat #(with-open [rdr (io/reader %)]
+                            (doall (record-seq rdr "%%\n"))))
+                 (keep-indexed (fn [idx line]
+                                 (if (zero? (rand-int (inc idx)))
+                                   line)))
+                 (last))]
+  (printf "%s" adage))
+;;-----------------------------
