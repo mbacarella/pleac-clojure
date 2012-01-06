@@ -524,12 +524,11 @@
      (if (= s " ")
        (perl-split-on-space s)
        (split-with-capture s re)))
-     (perl-split s re 0))
   ([s re limit]
      (if (= s " ")
        ;; TBD: I don't think this behavior is implemented yet.
        (perl-split-on-space s limit)
-       (split-with-capture s re limit)))
+       (split-with-capture s re limit))))
 
 (let [FIELDS (perl-split RECORD #"PATTERN")]
   ;; ...
